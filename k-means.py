@@ -45,6 +45,9 @@ class Model:
         )
         return cluster_ids
 
+    def get_embedding_tensor(self):
+        return self.__embedding_tensor
+
 
 def main():
     parser = HfArgumentParser((DataArguments))

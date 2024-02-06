@@ -44,7 +44,9 @@ class Model:
 
     def get_embedding(self, audio_file):
         signal, fs = torchaudio.load(audio_file)
-        embedding = self.__classifier.encode_batch(signal, normalize=True)
+        if fs != 16000:
+            signal = torchaudio.functional.resample(signal,orig_freq=fs, new_freq=16000)
+        embedding = self.__classifier.encode_batch(signal)
         return embedding
 
 
@@ -62,10 +64,11 @@ def main():
 
     embeddings = []
     if data_args.audio_folder is not None:
-        for i, filename in enumerate(os.listdir(data_args.audio_folder)):
+        for i, basename in enumerate(os.listdir(data_args.audio_folder)):
+            filename = os.path.join(data_args.audio_folder, basename)
             embedding_dict = {}
             embedding_dict['filename'] = os.path.basename(filename)
-            embedding_dict['embedding'] = model.get_embedding(data_args.audio_file)
+            embedding_dict['embedding'] = model.get_embedding(filename)
             embeddings.append(embedding_dict)
 
     elif data_args.audio_file is not None:
