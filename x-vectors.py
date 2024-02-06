@@ -2,6 +2,7 @@ import os
 import sys
 from dataclasses import dataclass, field
 
+import torch
 import torchaudio
 from speechbrain.pretrained import EncoderClassifier
 from transformers import HfArgumentParser
@@ -23,6 +24,28 @@ class DataArguments:
         default=None,
         metadata={'help': 'Audio file which will be encoded'}
     )
+    audio_folder: str = field(
+        default=None,
+        metadata={'help': 'Audio folder which will be encoded'}
+    )
+    pickle_save: bool = field(
+        default=False,
+        metadata={'help': 'If embeddings should be saved as binary file'}
+    )
+    embeddings_dump_name: str = field(
+        default='embeddings/cv16.pkl',
+        metadata={'help': 'Name of pkl dump file of embeddings. Used if pickle_save is True.'}
+    )
+
+
+class Model:
+    def __init__(self, model_args):
+        self.__classifier = EncoderClassifier.from_hparams(source=model_args.source, savedir=model_args.savedir)
+
+    def get_embedding(self, audio_file):
+        signal, fs = torchaudio.load(audio_file)
+        embedding = self.__classifier.encode_batch(signal, normalize=True)
+        return embedding
 
 
 def main():
@@ -34,12 +57,35 @@ def main():
     else:
         model_args, data_args = parser.parse_args_into_dataclasses()
 
-    classifier = EncoderClassifier.from_hparams(source=model_args.source, savedir=model_args.savedir)
-    signal, fs = torchaudio.load(data_args.audio_file)
-    embeddings = classifier.encode_batch(signal)
+    model = Model(model_args)
+    embeddings = torch.zeros(1, 1, 512)
+
+    embeddings = []
+    if data_args.audio_folder is not None:
+        for i, filename in enumerate(os.listdir(data_args.audio_folder)):
+            embedding_dict = {}
+            embedding_dict['filename'] = os.path.basename(filename)
+            embedding_dict['embedding'] = model.get_embedding(data_args.audio_file)
+            embeddings.append(embedding_dict)
+
+    elif data_args.audio_file is not None:
+        embeddings = model.get_embedding(data_args.audio_file)
+
+    else:
+        raise Exception('Data path not defined!')
 
     print(embeddings)
-    print(embeddings.shape)
+    print(len(embeddings))
+
+    if data_args.pickle_save:
+        import pickle
+
+        dirname = os.path.dirname(data_args.embeddings_dump_name)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname, exist_ok=True)
+
+        with open(data_args.embeddings_dump_name,'wb') as f:
+            pickle.dump(embeddings, f)
 
 
 if __name__ == '__main__':

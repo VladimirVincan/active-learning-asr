@@ -1,6 +1,6 @@
 # How to run x-vectors
 Run the following command: `python3 x-vectors.py x-vectors.json` \
-Make sure you have the correct file in `/samples` folder.
+Make sure you have the correct file in `samples/` folder.
 
 If Nvidia is creating problems, add to .bashrc:
 
