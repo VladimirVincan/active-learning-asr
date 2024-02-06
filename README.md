@@ -1,6 +1,13 @@
 # How to run x-vectors
-Run the following command: `python3 x-vectors.py x-vectors.json` \
-Make sure you have the correct file in `samples/` folder.
+Run the following command to create embeddings: `python3 x-vectors.py x-vectors.json` \
+The embeddings will be created in the `embeddings` folder. 
+
+Run the following command to clusterize embeddings: `python3 k-means.py k-means.json` \
+The clusters will be created in the `clusters` folder. 
+
+Run the following command to see clusters: `python3 read-clusters.py read-clusters.json`
+
+Please correct the `audio_folder` in the `x-vectors.json` file with the path to your data.
 
 Install https://github.com/subhadarship/kmeans_pytorch
 
