@@ -1,0 +1,6 @@
+{
+    "embeddings_dump_name": "embeddings/cv16.pkl",
+    "num_clusters": 5,
+    "pickle_save": true,
+    "clusters_dump_name": "clusters/cv16.pkl"
+}

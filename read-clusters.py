@@ -9,9 +9,9 @@ from transformers import HfArgumentParser
 
 @dataclass
 class DataArguments:
-    embeddings_dump_name: str = field(
-        default='embeddings/cv16.pkl',
-        metadata={'help': 'Name of pkl dump file of embeddings.'}
+    clusters_dump_name: str = field(
+        default='clusters/cv16.pkl',
+        metadata={'help': 'Name of pkl dump file of clusters list.'}
     )
 
 
@@ -23,12 +23,14 @@ def main():
         data_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
         data_args = parser.parse_args_into_dataclasses()
+
+    # Remove this line if multiple dataclasses exist in parser
     data_args = data_args[0]
 
-    with open(data_args.embeddings_dump_name, 'rb') as f:
-        embeddings = pickle.load(f)
+    with open(data_args.clusters_dump_name, 'rb') as f:
+        clusters_dicts = pickle.load(f)
 
-    print(embeddings[0])
+    print(clusters_dicts)
 
 
 if __name__ == '__main__':

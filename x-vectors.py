@@ -74,8 +74,8 @@ def main():
     else:
         raise Exception('Data path not defined!')
 
-    print(embeddings)
-    print(len(embeddings))
+    # print(embeddings)
+    # print(len(embeddings))
 
     if data_args.pickle_save:
         import pickle

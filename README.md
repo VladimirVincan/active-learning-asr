@@ -2,6 +2,8 @@
 Run the following command: `python3 x-vectors.py x-vectors.json` \
 Make sure you have the correct file in `samples/` folder.
 
+Install https://github.com/subhadarship/kmeans_pytorch
+
 If Nvidia is creating problems, add to .bashrc:
 
 ```bash
