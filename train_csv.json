@@ -1,0 +1,6 @@
+{
+    "csv_filename": "common_voice/validated.tsv",
+    "output_csv_filename": "common_voice/validated_clusters.tsv",
+    "audio_folder": "cv_samples",
+    "clusters_dump_name": "clusters/cv16.pkl"
+}
