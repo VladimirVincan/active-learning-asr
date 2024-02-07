@@ -80,7 +80,6 @@ def main():
         }
         clusters.append(cluster_dict)
 
-
     # Save clusters list with pickle
     if data_args.pickle_save:
         dirname = os.path.dirname(data_args.clusters_dump_name)
@@ -89,6 +88,7 @@ def main():
 
         with open(data_args.clusters_dump_name,'wb') as f:
             pickle.dump(clusters, f)
+
 
 if __name__ == '__main__':
     main()
