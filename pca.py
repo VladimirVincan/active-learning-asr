@@ -37,6 +37,7 @@ def tensor2row(tensor):
 def embedding2df(embedding_dicts):
     df = pd.DataFrame()
     for embedding in embedding_dicts:
+        print(embedding)
         tensor = embedding['embedding'].numpy()[0][0]
         row = tensor2row(tensor)
         df = df.append(row, ignore_index=True)
@@ -46,7 +47,7 @@ def embedding2df(embedding_dicts):
 def get_cluster_list(clusters_dicts):
     cluster_list = []
     for cluster in clusters_dicts:
-        cluster_number = cluster['cluster'].numpy()
+        cluster_number = cluster['cluster']
         cluster_list.append(cluster_number)
     return cluster_list
 

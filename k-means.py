@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 import torch
 from kmeans_pytorch import kmeans
+from sklearn.cluster import KMeans
 from transformers import HfArgumentParser
 
 
@@ -33,17 +34,23 @@ class Model:
         self.__num_clusters = data_args.num_clusters
 
         self.__embedding_tensor = torch.zeros(1, 1, 512)
-        for i, dict in enumerate(embedding_dicts):
+        for i, emb_dict in enumerate(embedding_dicts):
             if i == 0:
-                self.__embedding_tensor = dict['embedding']
+                self.__embedding_tensor = emb_dict['embedding']
             else:
-                self.__embedding_tensor = torch.cat((self.__embedding_tensor, dict['embedding']))
+                self.__embedding_tensor = torch.cat((self.__embedding_tensor, emb_dict['embedding']))
+        self.__embedding_array = self.__embedding_tensor.squeeze().numpy()
+        # print(self.__embedding_array)
+
+        self.__kmeans = KMeans(
+            n_clusters=self.__num_clusters,
+            random_state=None,
+            n_init='auto'
+        )
+        self.__kmeans.fit(self.__embedding_array)
 
     def get_cluster_ids(self):
-        cluster_ids, cluster_centers = kmeans(
-            X=self.__embedding_tensor, num_clusters=self.__num_clusters, distance='euclidean', device=torch.device('cuda:0')
-        )
-        return cluster_ids
+        return self.__kmeans.labels_
 
     def get_embedding_tensor(self):
         return self.__embedding_tensor
@@ -69,16 +76,18 @@ def main():
     # print(model.get_cluster_ids())
     # print(model.get_cluster_ids().shape)
 
-    cluster_tensor = model.get_cluster_ids()
+    cluster_array = model.get_cluster_ids()
+    print(cluster_array)
 
     # Create clusters list
     clusters = []
     for i, emb_dict in enumerate(embedding_dicts):
         cluster_dict = {
             'filename': emb_dict['filename'],
-            'cluster': cluster_tensor[i]
+            'cluster': cluster_array[i]
         }
         clusters.append(cluster_dict)
+    print(clusters)
 
     # Save clusters list with pickle
     if data_args.pickle_save:
