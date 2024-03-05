@@ -122,11 +122,10 @@ def main():
         cluster_dicts = pickle.load(f)
 
     df = pd.read_csv(data_args.csv_filename, delimiter='\t')
+    df['path'] = df['path'] +  '.mp3'
 
-    # Remove .mp3 extension from cluster dicts
     df_cluster = pd.DataFrame(cluster_dicts)
-    df_cluster['path'] = df_cluster['filename'].str.split('.').str[0]
-    df_cluster.drop(columns=['filename'], inplace=True)
+    df_cluster.rename(columns={'filename': 'path'}, inplace=True)
 
     # change 'cluster' column from tensors to integers
     def tensor_to_int(tensor):
@@ -135,7 +134,7 @@ def main():
 
     # df_intersection = pd.merge(df_intersection, df_cluster, on='path', how='left')
     df_intersection = pd.merge(df, df_cluster, on='path', how='inner')
-    df_intersection.to_csv(data_args.output_csv_filename, sep='\t')
+    df_intersection.to_csv(data_args.output_csv_filename, sep='\t', index=False)
     print('Intersection df shape: ' + str(df_intersection.shape))
 
     df_random = create_random_df(df_intersection, data_args.num_rows_in_random)

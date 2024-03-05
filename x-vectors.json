@@ -1,5 +1,6 @@
 {
     "audio_file": "samples/grupa_04_sliced_1_sliced_34_1_mono.wav",
-    "audio_folder": "cv_samples",
-    "pickle_save": true
+    "audio_folder": "common_voice/PCA",
+    "pickle_save": true,
+    "embeddings_dump_name": "embeddings/pca.pkl"
 }

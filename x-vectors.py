@@ -64,8 +64,11 @@ def main():
 
     embeddings = []
     if data_args.audio_folder is not None:
-        for i, basename in enumerate(os.listdir(data_args.audio_folder)):
+        for i, basename in enumerate(sorted(os.listdir(data_args.audio_folder))):
             filename = os.path.join(data_args.audio_folder, basename)
+            if os.path.isdir(filename):
+                continue
+            print(basename)
             embedding_dict = {}
             embedding_dict['filename'] = os.path.basename(filename)
             embedding_dict['embedding'] = model.get_embedding(filename)
