@@ -25,9 +25,13 @@ class DataArguments:
         default='clusters/cv16.pkl',
         metadata={'help': 'Name of pkl dump file of clusters list.'}
     )
+    projection_dims: int = field(
+        default=2,
+        metadata={'help': '2 for 2d projection or 3 for 3d projection'}
+    )
 
 
-def tensor2row(tensor):
+    def tensor2row(tensor):
     row = {}
     for i in range(len(tensor)):
         row[f'column{i}'] = tensor[i]
@@ -37,7 +41,7 @@ def tensor2row(tensor):
 def embedding2df(embedding_dicts):
     df = pd.DataFrame()
     for embedding in embedding_dicts:
-        print(embedding)
+        # print(embedding)
         tensor = embedding['embedding'].numpy()[0][0]
         row = tensor2row(tensor)
         df = df.append(row, ignore_index=True)
@@ -73,32 +77,49 @@ def main():
     data_args = data_args[0]
 
     with open(data_args.embeddings_dump_name, 'rb') as f:
+        print('Opening embeddings')
         embedding_dicts = pickle.load(f)
 
     with open(data_args.clusters_dump_name, 'rb') as f:
+        print('Opening clusters')
         clusters_dicts = pickle.load(f)
 
+    print('creating df')
     df = embedding2df(embedding_dicts)
     cluster_list = get_cluster_list(clusters_dicts)
-    print(cluster_list)
 
-    pca = PCA(n_components=2)
-    pca.fit(df)
+    print(clusters_dicts)
+    print('pca starting')
+    pca = PCA(n_components=data_args.projection_dims).fit(df)
     x_pca = pca.transform(df)
+    print('pca finish')
+    print(pca.explained_variance_ratio_)
 
-    plt.figure(figsize=(8, 6))
-    plt.scatter(x_pca[:, 0], x_pca[:, 1],
-            c=cluster_list,
-            cmap='plasma')
+    if data_args.projection_dims == 3:
+        fig = plt.figure(figsize=(8, 6))
+        ax = plt.axes(projection='3d')
+        ax.scatter(x_pca[:, 0], x_pca[:, 1], x_pca[:, 2],
+                   c=cluster_list,
+                   cmap='plasma')
 
-    # labeling x and y axes
-    plt.xlabel('First Principal Component')
-    plt.ylabel('Second Principal Component')
+        # labeling x and y axes
+        ax.set_xlabel('First Principal Component')
+        ax.set_ylabel('Second Principal Component')
+        ax.set_zlabel('Third Principal Component')
+    else:
+        fig = plt.figure(figsize=(8, 6))
+        plt.scatter(x_pca[:, 0], x_pca[:, 1],
+                   c=cluster_list,
+                   cmap='plasma')
 
-    # annotate:
-    names = get_names(clusters_dicts)
-    for i, txt in enumerate(names):
-        plt.annotate(txt, (x_pca[i, 0], x_pca[i, 1]))
+        # labeling x and y axes
+        plt.xlabel('First Principal Component')
+        plt.ylabel('Second Principal Component')
+
+        # annotate:
+        names = get_names(clusters_dicts)
+        for i, txt in enumerate(names):
+            plt.annotate(txt, (x_pca[i, 0], x_pca[i, 1]))
 
     plt.show()
 
