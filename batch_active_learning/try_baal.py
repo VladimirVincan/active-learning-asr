@@ -11,11 +11,11 @@ from jiwer import wer
 import multiprocessing
 import torch.multiprocessing as mp
 
-PARALLEL = True
+PARALLEL = False
 
 # load model and tokenizer
-#model_path = "facebook/wav2vec2-base-960h"
-model_path = "philschmid/tiny-random-wav2vec2"
+model_path = "facebook/wav2vec2-base-960h"
+#model_path = "philschmid/tiny-random-wav2vec2"
 processor = Wav2Vec2Processor.from_pretrained(model_path)
 model = Wav2Vec2ForCTC.from_pretrained(model_path)
 
@@ -87,7 +87,7 @@ def CalculateUncertaintyForSample(processor, speech_sample, model):
 
 
 
-def CalculateUncertaintyFor_N_Samples_Sequential(processor, model, ds_processed, n_samples):
+def CalculateUncertaintyFor_N_Samples_Sequential(ds_processed, n_samples):
     results = []
     for i in range(n_samples):
         speech_sample = ds_processed[i]
@@ -100,24 +100,23 @@ def CalculateUncertaintyFor_N_Samples_Sequential(processor, model, ds_processed,
 
 #----------------- Parallel version -----------------#
         
-def CalculateUncertaintyForSampleParallel(processor, speech_sample, model_path):
+def CalculateUncertaintyForSampleParallel(speech_sample):
     print("Hi from parallel function")
-    
-    processor = Wav2Vec2Processor.from_pretrained(model_path)
-    model = Wav2Vec2ForCTC.from_pretrained(model_path)
-    print("Model loaded")
+    # we use global model and processor, because we cannot pass them as arguments to the parallel function
+    # due to the fact that the parallel function is called by the pool.apply_async function
+    # and the arguments to the parallel function must be picklable (and torch model is not picklable)
     
     return CalculateUncertaintyForSample(processor, speech_sample, model)
 
 
-def CalculateUncertaintyFor_N_Samples_Parallel(ctx, processor, model_path, ds_processed, n_samples):
+def CalculateUncertaintyFor_N_Samples_Parallel(ctx, ds_processed, n_samples):
     
     pool = ctx.Pool(processes=n_samples)
     #pool = multiprocessing.Pool()
     results = []
     for i in range(n_samples):
         speech_sample = ds_processed[i]
-        result = pool.apply_async(CalculateUncertaintyForSampleParallel, ((processor, speech_sample, model_path)))
+        result = pool.apply_async(CalculateUncertaintyForSampleParallel, (([speech_sample])))
         results.append(result)
     
     pool.close()
@@ -132,20 +131,16 @@ def CalculateUncertaintyFor_N_Samples_Parallel(ctx, processor, model_path, ds_pr
         print("Uncertainty for sample", speech_sample['file'], "is:", uncertainty)
 
 
-def CalculateUncertaintyFor_N_Samples(ctx, processor, model, ds_processed, n_samples, parallel=False):
+def CalculateUncertaintyFor_N_Samples(ctx, ds_processed, n_samples, parallel=False):
     if parallel:
-        CalculateUncertaintyFor_N_Samples_Parallel(ctx, processor, model_path, ds_processed, n_samples)
+        CalculateUncertaintyFor_N_Samples_Parallel(ctx, ds_processed, n_samples)
     else:
-        CalculateUncertaintyFor_N_Samples_Sequential(processor, model, ds_processed, n_samples)
-
-
-
-
+        CalculateUncertaintyFor_N_Samples_Sequential(ds_processed, n_samples)
 
 
 def main():
     ctx = mp.get_context('spawn') 
-    CalculateUncertaintyFor_N_Samples(ctx, processor, model, ds_processed, n_samples=4, parallel=PARALLEL)
+    CalculateUncertaintyFor_N_Samples(ctx, ds_processed, n_samples=4, parallel=PARALLEL)
 
 
 if __name__ == '__main__':
