@@ -8,10 +8,16 @@ from baal.active.heuristics import BALD
 from baal.bayesian.dropout import patch_module, MCDropoutModule
 from baal.transformers_trainer_wrapper import BaalTransformersTrainer
 from jiwer import wer
+import multiprocessing
+import torch.multiprocessing as mp
+
+PARALLEL = True
 
 # load model and tokenizer
-processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
-model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+#model_path = "facebook/wav2vec2-base-960h"
+model_path = "philschmid/tiny-random-wav2vec2"
+processor = Wav2Vec2Processor.from_pretrained(model_path)
+model = Wav2Vec2ForCTC.from_pretrained(model_path)
 
 ds = load_dataset("patrickvonplaten/librispeech_asr_dummy", "clean", split="validation")
 #ds = load_dataset("mozilla-foundation/common_voice_16_1", "sr", split="test")
@@ -69,7 +75,8 @@ def TranscribeUsingBaseModel(processor, model, speech_sample):
     return transcription
 
 
-def CalculateUncertaintyForSample(processor, model, speech_sample):
+def CalculateUncertaintyForSample(processor, speech_sample, model):
+    
     base_transcription = TranscribeUsingBaseModel(processor, model, speech_sample)
     wer_list = []
     for i in range(20):
@@ -78,9 +85,73 @@ def CalculateUncertaintyForSample(processor, model, speech_sample):
     return sum(wer_list) / len(wer_list)
 
 
-for i in range(20):
-    speech_sample = ds_processed[i]
-    print("Uncertainty for sample ", speech_sample['file'], " is: ", CalculateUncertaintyForSample(processor, model, speech_sample))
+
+
+def CalculateUncertaintyFor_N_Samples_Sequential(processor, model, ds_processed, n_samples):
+    results = []
+    for i in range(n_samples):
+        speech_sample = ds_processed[i]
+        uncertainty = CalculateUncertaintyForSample(processor, speech_sample, model)
+        results.append(uncertainty)
+    
+    for i, result in enumerate(results):
+        speech_sample = ds_processed[i]
+        print("Uncertainty for sample", speech_sample['file'], "is:", result)
+
+#----------------- Parallel version -----------------#
+        
+def CalculateUncertaintyForSampleParallel(processor, speech_sample, model_path):
+    print("Hi from parallel function")
+    
+    processor = Wav2Vec2Processor.from_pretrained(model_path)
+    model = Wav2Vec2ForCTC.from_pretrained(model_path)
+    print("Model loaded")
+    
+    return CalculateUncertaintyForSample(processor, speech_sample, model)
+
+
+def CalculateUncertaintyFor_N_Samples_Parallel(ctx, processor, model_path, ds_processed, n_samples):
+    
+    pool = ctx.Pool(processes=n_samples)
+    #pool = multiprocessing.Pool()
+    results = []
+    for i in range(n_samples):
+        speech_sample = ds_processed[i]
+        result = pool.apply_async(CalculateUncertaintyForSampleParallel, ((processor, speech_sample, model_path)))
+        results.append(result)
+    
+    pool.close()
+    pool.join()
+    uncertainties = [result.get() for result in results]
+
+    
+    # TODO for loop above is necessary to be parallelized, 
+    # but the for loop will be replaced with a sort and select top results
+    for i, uncertainty in enumerate(uncertainties):
+        speech_sample = ds_processed[i]
+        print("Uncertainty for sample", speech_sample['file'], "is:", uncertainty)
+
+
+def CalculateUncertaintyFor_N_Samples(ctx, processor, model, ds_processed, n_samples, parallel=False):
+    if parallel:
+        CalculateUncertaintyFor_N_Samples_Parallel(ctx, processor, model_path, ds_processed, n_samples)
+    else:
+        CalculateUncertaintyFor_N_Samples_Sequential(processor, model, ds_processed, n_samples)
+
+
+
+
+
+
+def main():
+    ctx = mp.get_context('spawn') 
+    CalculateUncertaintyFor_N_Samples(ctx, processor, model, ds_processed, n_samples=4, parallel=PARALLEL)
+
+
+if __name__ == '__main__':
+    main()
+
+
 '''
 for i in range(5):
     transcription = TranscribeUsingDropout(processor, model, speech_sample)
