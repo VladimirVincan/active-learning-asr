@@ -1,15 +1,14 @@
 import os
-import sys
 import shutil
-from pathlib import Path
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import datasets
 import pandas as pd
 import soundfile
-from datasets import load_dataset, Audio
+from datasets import Audio, load_dataset
 from transformers import HfArgumentParser
-
 
 """
 For mp3 files (common voice), Ubuntu 22+ needed.
@@ -42,12 +41,20 @@ class DataArguments:
         default=16000,
         metadata={'help': 'Audio file sampling rate.'}
     )
+    mono: bool = field(
+        default=True,
+        metadata={'help': 'Set audio to be mono of stereo.'}
+    )
     extension: str = field(
         default='.wav',
         metadata={'help': 'Extension of audio files.'}
     )
     label_column: str = field(
         default='sentence',
+        metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
+    )
+    path_column: str = field(
+        default='path',
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     csv: str = field(
@@ -69,8 +76,10 @@ class DatasetDownloader:
         self.__folder = os.path.join(os.getcwd(), data_args.folder)
         self.__cache = os.path.join(os.getcwd(), data_args.folder + '_cache')
         self.__sampling_rate = data_args.sampling_rate
+        self.__mono = data_args.mono
         self.__extension = data_args.extension
         self.__label_column = data_args.label_column
+        self.__path_column = data_args.path_column
         self.__csv = os.path.join(self.__cache, data_args.csv)
         self.__num_samples = data_args.num_samples
 
@@ -93,8 +102,18 @@ class DatasetDownloader:
             self.__move_file(os.path.join(src_path, file_name), dest_path)
 
     def __process_librispeech(self, df):
-        df = df.rename(columns={"text": self.__label_column})
-        df['file'] = df['file'].apply(lambda x: x.split('.')[0] + self.__extension)
+        df = df.rename(columns={"text": self.__label_column, "file": self.__path_column})
+        df[self.__path_column] = df[self.__path_column].apply(lambda x: x.split('.')[0] + self.__extension)
+        return df
+
+    def __preprocess_common_voice(self, row):
+        row['audio']['path'] = os.path.basename(row['audio']['path'])
+        row['path'] = os.path.basename(row['audio']['path'])
+        return row
+
+    def __process_common_voice(self, df):
+        df = df.rename(columns={"sentence": self.__label_column, "path": self.__path_column})
+        df[self.__path_column] = df[self.__path_column].apply(lambda x: x.split('.')[0] + self.__extension)
         return df
 
     def download(self):
@@ -104,12 +123,14 @@ class DatasetDownloader:
         self.__create_folders(os.path.join(self.__cache, 'clips'))
 
         dataset = load_dataset(self.__dataset, self.__lang, split=self.__split, streaming=True, use_auth_token=self.__use_auth_token, cache_dir=self.__cache)
-        dataset = dataset.cast_column('audio', Audio(sampling_rate=self.__sampling_rate))  # change sampling rate
+        dataset = dataset.cast_column('audio', Audio(sampling_rate=self.__sampling_rate, mono=self.__mono))  # change sampling rate
         dataset = iter(dataset)
 
         rows = []
         for i, row in enumerate(dataset):
             print(i)
+            if self.__dataset.find('common_voice') >= 0:
+                row = self.__preprocess_common_voice(row)
             path = os.path.join(self.__cache, 'clips', row['audio']['path'])
             path = path.split('.')[0] + '.wav'
             soundfile.write(path, row['audio']['array'], row['audio']['sampling_rate'])
@@ -121,8 +142,10 @@ class DatasetDownloader:
                 break
 
         df = pd.DataFrame(rows)
-        if self.__dataset == 'librispeech_asr':
+        if self.__dataset.find('librispeech') >= 0:
             df = self.__process_librispeech(df)
+        elif self.__dataset.find('common_voice') >= 0:
+            df = self.__process_common_voice(df)
         df.to_csv(self.__csv, index=False, header=True)
 
         self.__move_file(self.__csv, self.__folder)

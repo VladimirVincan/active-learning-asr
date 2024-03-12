@@ -4,8 +4,9 @@
     "split": "train.100",
     "folder": "librispeech",
     "sampling_rate": 16000,
+    "mono": true,
     "extension": ".wav",
-    "label_column": "text",
+    "label_column": "sentence",
     "csv": "metadata.csv",
-    "num_samples": 10
+    "num_samples": -1,
 }
