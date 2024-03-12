@@ -1,0 +1,11 @@
+{
+    "dataset": "librispeech_asr",
+    "lang": "clean",
+    "split": "train.100",
+    "folder": "librispeech",
+    "sampling_rate": 16000,
+    "extension": ".wav",
+    "label_column": "text",
+    "csv": "metadata.csv",
+    "num_samples": 10
+}

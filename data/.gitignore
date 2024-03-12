@@ -1,0 +1,3 @@
+common_voice/
+librispeech/
+*cache/

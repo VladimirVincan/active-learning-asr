@@ -1,0 +1,12 @@
+{
+    "use_auth_token": true,
+    "dataset": "mozilla-foundation/common_voice_1_0",
+    "lang": "en",
+    "split": "train",
+    "folder": "common_voice",
+    "sampling_rate": 16000,
+    "extension": ".wav",
+    "label_column": "text",
+    "csv": "metadata.csv",
+    "num_samples": 10
+}
