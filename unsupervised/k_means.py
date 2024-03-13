@@ -61,7 +61,7 @@ def main():
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        data_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        data_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]), allow_extra_keys=True)
     else:
         data_args = parser.parse_args_into_dataclasses()
 
@@ -72,9 +72,6 @@ def main():
         embedding_dicts = pickle.load(f)
 
     model = Model(data_args, embedding_dicts)
-
-    # print(model.get_cluster_ids())
-    # print(model.get_cluster_ids().shape)
 
     cluster_array = model.get_cluster_ids()
     print(cluster_array)
@@ -87,7 +84,7 @@ def main():
             'cluster': cluster_array[i]
         }
         clusters.append(cluster_dict)
-    print(clusters)
+    # print(clusters)
 
     # Save clusters list with pickle
     if data_args.pickle_save:

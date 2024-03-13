@@ -1,3 +1,4 @@
+*.json
 samples/
 pretrained_models/
 common_voice/

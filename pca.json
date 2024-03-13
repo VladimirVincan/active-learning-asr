@@ -1,5 +1,0 @@
-{
-    "embeddings_dump_name": "embeddings/pca.pkl",
-    "num_clusters": 4,
-    "clusters_dump_name": "clusters/pca.pkl"
-}

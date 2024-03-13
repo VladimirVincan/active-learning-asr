@@ -1,0 +1,8 @@
+{
+    "audio_folder": "../data/librispeech/clips",
+    "embeddings_dump_name": "../embeddings/librispeech.pkl",
+    "clusters_dump_name": "../clusters/librispeech.pkl",
+    "pickle_save": true,
+    "num_clusters": 4,
+    "projection_dims": 3
+}

@@ -1,0 +1,8 @@
+{
+    "audio_folder": "../data/common_voice/clips",
+    "embeddings_dump_name": "../embeddings/common_voice.pkl",
+    "clusters_dump_name": "../clusters/common_voice.pkl",
+    "pickle_save": true,
+    "num_clusters": 4,
+    "projection_dims": 3
+}

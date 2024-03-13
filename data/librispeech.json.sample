@@ -8,5 +8,5 @@
     "extension": ".wav",
     "label_column": "sentence",
     "csv": "metadata.csv",
-    "num_samples": -1,
+    "num_samples": -1
 }

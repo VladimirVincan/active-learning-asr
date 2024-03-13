@@ -1,0 +1,6 @@
+{
+    "embeddings_dump_name": "../embeddings/clips.pkl",
+    "num_clusters": 4,
+    "pickle_save": true,
+    "clusters_dump_name": "../clusters/clips.pkl"
+}

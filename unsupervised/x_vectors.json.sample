@@ -1,0 +1,5 @@
+{
+    "audio_folder": "../data/librispeech/clips",
+    "pickle_save": true,
+    "embeddings_dump_name": "../embeddings/librispeech.pkl"
+}

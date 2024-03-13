@@ -1,0 +1,6 @@
+{
+    "embeddings_dump_name": "embeddings/ivector_concat.pkl",
+    "num_clusters": 2,
+    "clusters_dump_name": "clusters/ivector_concat.pkl",
+    "projection_dims": 3
+}

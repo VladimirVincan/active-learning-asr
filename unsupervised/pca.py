@@ -31,7 +31,7 @@ class DataArguments:
     )
 
 
-    def tensor2row(tensor):
+def tensor2row(tensor):
     row = {}
     for i in range(len(tensor)):
         row[f'column{i}'] = tensor[i]
@@ -41,8 +41,7 @@ class DataArguments:
 def embedding2df(embedding_dicts):
     df = pd.DataFrame()
     for embedding in embedding_dicts:
-        # print(embedding)
-        tensor = embedding['embedding'].numpy()[0][0]
+        tensor = embedding['embedding'].numpy()[0][0]  # if 1-d array problem, comment out last [0]!!
         row = tensor2row(tensor)
         df = df.append(row, ignore_index=True)
     return df
@@ -69,7 +68,7 @@ def main():
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        data_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        data_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]), allow_extra_keys=True)
     else:
         data_args = parser.parse_args_into_dataclasses()
 
@@ -88,13 +87,12 @@ def main():
     df = embedding2df(embedding_dicts)
     cluster_list = get_cluster_list(clusters_dicts)
 
-    print(clusters_dicts)
-    print('pca starting')
+    print('pca start')
     pca = PCA(n_components=data_args.projection_dims).fit(df)
     x_pca = pca.transform(df)
-    print('pca finish')
     print(pca.explained_variance_ratio_)
 
+    print('plot start')
     if data_args.projection_dims == 3:
         fig = plt.figure(figsize=(8, 6))
         ax = plt.axes(projection='3d')
