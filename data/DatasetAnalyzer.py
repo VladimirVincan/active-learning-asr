@@ -3,6 +3,7 @@ import shutil
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from pprint import pprint
 
 import datasets
 import pandas as pd
@@ -42,11 +43,10 @@ class DatasetAnalyzer(DatasetDownloader):
         Prints the speaker id and number of audio files that the speaker appeared in.
         """
         speaker_counts = self._df[self._speaker_column].value_counts()
-        # if speaker_num >= 0:
-        #     # create a shorter dict with the top speaker_num speakers
-        #     speaker_counts = dict(list(speaker_counts.items())[:speaker_num])
-        import pprint
-        pprint.pprint(speaker_counts)
+        speaker_counts = {k: v for k, v in sorted(speaker_counts.items(), key=lambda item: item[1], reverse=True)}
+        if speaker_num >= 0:
+            # create a shorter dict with the top speaker_num speakers
+            speaker_counts = dict(list(speaker_counts.items())[:speaker_num])
         return speaker_counts
 
     def duration_per_speaker(self, speaker_num=-1):
@@ -65,17 +65,13 @@ class DatasetAnalyzer(DatasetDownloader):
                 duration_dict[row[self._speaker_column]] = duration
 
         # sort the dict
-        duration_dict = (sorted(duration_dict.items(), key=lambda item: item[1], reverse=True))
-        import pprint
-        pprint.pprint(duration_dict)
+        duration_dict = dict(sorted(duration_dict.items(), key=lambda item: item[1], reverse=True))
 
         if speaker_num >= 0:
             # create a shorter dict with the top speaker_num speakers
             duration_dict = dict(list(duration_dict.items())[:speaker_num])
 
         return duration_dict
-
-
 
 
 def main():
@@ -88,14 +84,19 @@ def main():
 
     dataset_analyzer = DatasetAnalyzer(data_args)
 
-    speaker_counts = dataset_analyzer.speaker_counts(20)
-    # print(speaker_counts)
-    # dataset_analyzer.duration_per_speaker(20)
-    # total_duration_seconds = dataset_analyzer.duration()
-    # print(f"Total duration of audio files in the folder: {total_duration_seconds:.2f} seconds")
+    print("----- Number of audio files per speaker -----")
+    speaker_counts = dataset_analyzer.speaker_counts(5)
+    pprint(speaker_counts, sort_dicts=False)
 
-    # num_files = dataset_analyzer.file_number()
-    # print(f"Total number of audio files in the folder: {num_files}")
+    print("----- Duration per speaker -----")
+    duration_per_speaker = dataset_analyzer.duration_per_speaker(5)
+    pprint(duration_per_speaker, sort_dicts=False)
+
+    total_duration_seconds = dataset_analyzer.duration()
+    print(f"Total duration of audio files in the folder: {total_duration_seconds:.2f} seconds")
+
+    num_files = dataset_analyzer.file_number()
+    print(f"Total number of audio files in the folder: {num_files}")
 
 
 if __name__ == '__main__':
