@@ -3,6 +3,7 @@ import pickle
 import sys
 from dataclasses import dataclass, field
 
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -63,6 +64,16 @@ def get_names(clusters_dicts):
     return names
 
 
+def cluster_list_to_color_list(data_args, cluster_list):
+    num_clusters = data_args.num_clusters
+    color_list = []
+    for i in cluster_list:
+        color = cm.nipy_spectral(float(i) / num_clusters)
+        color_list.append(color)
+
+    return color_list
+
+
 def main():
     parser = HfArgumentParser((DataArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
@@ -86,6 +97,7 @@ def main():
     print('creating df')
     df = embedding2df(embedding_dicts)
     cluster_list = get_cluster_list(clusters_dicts)
+    color_list = cluster_list_to_color_list(data_args, cluster_list)
 
     print('pca start')
     pca = PCA(n_components=data_args.projection_dims).fit(df)
@@ -97,8 +109,8 @@ def main():
         fig = plt.figure(figsize=(8, 6))
         ax = plt.axes(projection='3d')
         ax.scatter(x_pca[:, 0], x_pca[:, 1], x_pca[:, 2],
-                   c=cluster_list,
-                   cmap='plasma')
+                   c=color_list,
+                   cmap='nipy_spectral')
 
         # labeling x and y axes
         ax.set_xlabel('First Principal Component')
@@ -107,8 +119,8 @@ def main():
     else:
         fig = plt.figure(figsize=(8, 6))
         plt.scatter(x_pca[:, 0], x_pca[:, 1],
-                   c=cluster_list,
-                   cmap='plasma')
+                   c=color_list,
+                   cmap='nipy_spectral')
 
         # labeling x and y axes
         plt.xlabel('First Principal Component')

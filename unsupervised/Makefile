@@ -1,4 +1,4 @@
-.PHONY: all clear x_vectors k_means pca librispeech
+.PHONY: all clear x_vectors k_means pca librispeech x_vectors_merge
 
 all: x_vectors k_means pca
 
@@ -40,6 +40,15 @@ common_voice:
 	@python3 x_vectors.py common_voice.json
 	@python3 k_means.py common_voice.json
 	@python3 pca.py common_voice.json
+
+x_vectors_merge:
+# make sure you have librispeech and common voice embeddings beforehand
+	@if [ ! -f x_vectors_merge.json ]; then \
+		cp x_vectors_merge.json.sample x_vectors_merge.json; \
+		echo "Copying x_vectors_merge.json.sample -> x_vectors_merge.json"; \
+	fi
+	@python3 clusterize_and_merge_vectors.py x_vectors_merge.json
+	@python3 pca.py x_vectors_merge.json
 
 clear:
 	@echo "Removing x_vectors.json"

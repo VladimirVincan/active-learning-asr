@@ -51,7 +51,7 @@ class Silhouette():
         with open(data_args.clusters_dump_name, 'rb') as f:
             print('Opening clusters')
             clusters_dicts = pickle.load(f)
-            self._cluster_array = [d['cluster']-1 for d in clusters_dicts]
+            self._cluster_array = [d['cluster'] for d in clusters_dicts]
 
         self._num_clusters = data_args.num_clusters
 

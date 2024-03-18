@@ -1,7 +1,0 @@
-{
-    "embeddings1_dump_name": "embeddings/clips.pkl",
-    "embeddings2_dump_name": "embeddings/librispeech.pkl",
-    "embeddings_concat_dump_name": "embeddings/concat.pkl",
-    "pickle_save": true,
-    "clusters_dump_name": "clusters/concat.pkl"
-}

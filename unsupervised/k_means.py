@@ -4,7 +4,6 @@ import sys
 from dataclasses import dataclass, field
 
 import torch
-from kmeans_pytorch import kmeans
 from sklearn.cluster import KMeans
 from transformers import HfArgumentParser
 
