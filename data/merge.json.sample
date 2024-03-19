@@ -1,0 +1,10 @@
+{
+    "csv1": "common_voice/metadata.csv",
+    "csv2": "librispeech/metadata.csv",
+    "split1": "train",
+    "split2": "train",
+    "folder": "merge",
+    "label_column": "sentence",
+    "path_column": "path",
+    "speaker_column": "speaker_id"
+}
