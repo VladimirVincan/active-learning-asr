@@ -107,8 +107,6 @@ class TrainingCreator:
         if split == 'train' or split == 'dev' or split == 'test':
             df[self._path_column] = df.apply(lambda row: os.path.join('clips', split, row[self._path_column]), axis=1)
 
-        print(df.head()[self._path_column])
-
         return df
 
     def _create_metadata(self):
