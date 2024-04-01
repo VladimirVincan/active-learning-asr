@@ -42,6 +42,10 @@ class DataArguments:
         default='speaker_id',
         metadata={'help': 'Name of column name that has names/ids of speakers.'}
     )
+    sampling_method: str = field(
+        default='stratified',
+        metadata={'help': 'stratified|random|inverse'}
+    )
 
 
 class ClusterSampler():
@@ -53,6 +57,7 @@ class ClusterSampler():
         self._label_column = data_args.label_column
         self._path_column = data_args.path_column
         self._speaker_column = data_args.speaker_column
+        self._sampling_method = data_args.sampling_method
 
         print('--- read csv ---')
         self._df = pd.read_csv(self._csv)
@@ -65,8 +70,7 @@ class ClusterSampler():
 
         self._df_train, self._df_others = self._divide_df_train_others()
         self._df_train = self.assign_cluster_to_df(self._df_train, self._clusters_dicts)
-        # self._df_train.to_csv('clusters1.csv')
-        self._df_train = self._get_sampled_df(self._df_train)
+        self._df_train = self._get_sampled_df(self._df_train, self._sampling_method)
 
         self._df_output = pd.concat([self._df_train, self._df_others]).reset_index(drop=True)
         self._df_output = self._remove_bad_transcriptions(self._df_output)
@@ -154,14 +158,45 @@ class ClusterSampler():
         print('Empty string count = ' + str(empty_string_count))
         return df
 
-    def _get_sampled_df(self, df, frac=0.05):
+    def _get_sampled_df(self, df, sampling_method, frac=0.05):
         """
         Get df where train subset is sampled.
 
         https://www.geeksforgeeks.org/stratified-sampling-in-pandas/
         """
-        df_stratified = df.groupby('cluster', group_keys=False).apply(lambda x: x.sample(frac=frac, random_state=42))
-        return df_stratified
+        if sampling_method == 'stratified':
+            df_stratified = df.groupby('cluster', group_keys=False).apply(lambda x: x.sample(frac=frac, random_state=42))
+            return df_stratified
+        elif sampling_method == 'random':
+            df_random = df.sample(frac=frac, random_state=42)
+            return df_random
+        elif sampling_method == 'inverse':
+            # unique_elements = df['cluster'].unique().tolist()
+            df_random_size = df.sample(frac=frac, random_state=42).shape[0]
+            print('random sampling size: ' + str(df_random_size))
+            value_counts = df['cluster'].value_counts().reset_index()
+            total_rows = value_counts['cluster'].sum()
+            value_counts['sample_percentage'] = value_counts['cluster'] / total_rows
+            value_counts = self._inverse_sampling_function(value_counts, total_rows)
+            print(total_rows)
+            print(value_counts)
+            exit()
+
+    def _inverse_sampling_function(self, value_counts, size):
+        print('ENTERED INVERSE')
+        ymin = 0.045
+        ymax = 0.0738
+        xmin = 0
+        xmax = 1
+        # opadajuca fja
+        # y = -kx + n
+        # tacke: (0, ymax), (1, ymin)
+        # y = (ymin-ymax)/(1-0) x + ymax
+        value_counts['affine_linear'] = (ymin-ymax)*value_counts['sample_percentage'] + ymax
+        value_counts['num_samples'] = ( value_counts['affine_linear'] * value_counts['cluster'] ).astype(int)
+        selected_number_of_rows = value_counts['num_samples'].sum()
+        print('affine inear num rows: ' + str(selected_number_of_rows))
+        return value_counts
 
     def _create_relative_symlink(self, src, dst):
         directory = os.path.dirname(dst)
