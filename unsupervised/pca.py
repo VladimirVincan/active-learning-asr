@@ -109,8 +109,10 @@ def main():
         fig = plt.figure(figsize=(8, 6))
         ax = plt.axes(projection='3d')
         ax.scatter(x_pca[:, 0], x_pca[:, 1], x_pca[:, 2],
-                   c=color_list,
+                   c=cluster_list,
                    cmap='nipy_spectral')
+                   # c=color_list,
+                   # cmap='nipy_spectral')
 
         # labeling x and y axes
         ax.set_xlabel('First Principal Component')

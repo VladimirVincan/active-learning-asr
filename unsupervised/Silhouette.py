@@ -55,12 +55,13 @@ class Silhouette():
 
         self._num_clusters = data_args.num_clusters
 
-    def get_slihouette_score(self):
+    def get_silhouette_score(self):
         self._silhouette_avg = silhouette_score(self._embeddings_array, self._cluster_array)
         return self._silhouette_avg
 
     def silhouette_plot(self):
-        fig, (ax1) = plt.subplots(1, 1)
+        fig, (ax1) = plt.subplots(1, 1, figsize=(8, 6))
+
         sample_silhouette_values = silhouette_samples(self._embeddings_array, self._cluster_array)
 
         y_lower = 10
@@ -123,8 +124,12 @@ def main():
     data_args = data_args[0]
 
     silhouette = Silhouette(data_args)
-    print(silhouette.get_slihouette_score())
-    silhouette.silhouette_plot()
+    score = silhouette.get_silhouette_score()
+    print(score)
+    with open("scores.txt", "a") as file:
+        file.write(str(score) + "\n")
+
+    # silhouette.silhouette_plot()
 
 
 if __name__ == '__main__':

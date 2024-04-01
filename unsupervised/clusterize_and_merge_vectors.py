@@ -51,7 +51,6 @@ def main():
     with open(data_args.embeddings2_dump_name, 'rb') as f:
         embedding2_dicts = pickle.load(f)
 
-    print(embedding1_dicts)
     # Create clusters list
     clusters = []
     for i, emb_dict in enumerate(embedding1_dicts):

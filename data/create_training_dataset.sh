@@ -4,7 +4,7 @@ rm -rf ls_cv_train_dump
 rm -rf final
 
 python3 TrainingCreator.py \
-        --csv1="librispeech/metadata.csv" \
+        --csv1="librispeech/metadata_sorted_selected_dbscan.csv" \
         --split1="split" \
         --split2="none" \
         --split_size="0.3" \
