@@ -173,25 +173,39 @@ class ClusterSampler():
         elif sampling_method == 'inverse':
             # unique_elements = df['cluster'].unique().tolist()
             df_random_size = df.sample(frac=frac, random_state=42).shape[0]
-            print('random sampling size: ' + str(df_random_size))
+            # print('random sampling size: ' + str(df_random_size))
             value_counts = df['cluster'].value_counts().reset_index()
             total_rows = value_counts['cluster'].sum()
             value_counts['sample_percentage'] = value_counts['cluster'] / total_rows
             value_counts = self._inverse_sampling_function(value_counts, total_rows)
-            print(total_rows)
             print(value_counts)
-            exit()
+
+            # group = df.groupby('cluster', group_keys=False).apply(lambda x: print(value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0]))
+            group = df.groupby('cluster', group_keys=False).apply(lambda x: x.sample(n=value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0], random_state=42))
+            return group
 
     def _inverse_sampling_function(self, value_counts, size):
-        print('ENTERED INVERSE')
+        """
+        opadajuca fja
+        y = -kx + n
+        tacke: (0, ymax), (1, ymin)
+        y = (ymin-ymax)/(1-0) x + ymax
+
+        librispeech = 112
+        ymin = 0.02
+        ymax = 0.178
+
+        librispeech = 57
+        ymin = 0.04
+        ymax = 0.09498
+
+        librispeech = 33
         ymin = 0.045
         ymax = 0.0738
-        xmin = 0
-        xmax = 1
-        # opadajuca fja
-        # y = -kx + n
-        # tacke: (0, ymax), (1, ymin)
-        # y = (ymin-ymax)/(1-0) x + ymax
+        """
+        ymin = 0.04
+        ymax = 0.09498
+
         value_counts['affine_linear'] = (ymin-ymax)*value_counts['sample_percentage'] + ymax
         value_counts['num_samples'] = ( value_counts['affine_linear'] * value_counts['cluster'] ).astype(int)
         selected_number_of_rows = value_counts['num_samples'].sum()
