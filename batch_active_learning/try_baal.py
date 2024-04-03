@@ -1,15 +1,15 @@
 # Wav2Vec in Baal
 
-from datasets import load_dataset, DatasetDict
-import torch
-from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC, TrainingArguments
-
-from baal.active.heuristics import BALD
-from baal.bayesian.dropout import patch_module, MCDropoutModule
-from baal.transformers_trainer_wrapper import BaalTransformersTrainer
-from jiwer import wer
 import multiprocessing
+
+import torch
 import torch.multiprocessing as mp
+from baal.active.heuristics import BALD
+from baal.bayesian.dropout import MCDropoutModule, patch_module
+from baal.transformers_trainer_wrapper import BaalTransformersTrainer
+from datasets import DatasetDict, load_dataset
+from jiwer import wer
+from transformers import TrainingArguments, Wav2Vec2ForCTC, Wav2Vec2Processor
 
 PARALLEL = False
 
@@ -76,7 +76,7 @@ def TranscribeUsingBaseModel(processor, model, speech_sample):
 
 
 def CalculateUncertaintyForSample(processor, speech_sample, model):
-    
+
     base_transcription = TranscribeUsingBaseModel(processor, model, speech_sample)
     wer_list = []
     for i in range(20):
@@ -93,24 +93,24 @@ def CalculateUncertaintyFor_N_Samples_Sequential(ds_processed, n_samples):
         speech_sample = ds_processed[i]
         uncertainty = CalculateUncertaintyForSample(processor, speech_sample, model)
         results.append(uncertainty)
-    
+
     for i, result in enumerate(results):
         speech_sample = ds_processed[i]
         print("Uncertainty for sample", speech_sample['file'], "is:", result)
 
 #----------------- Parallel version -----------------#
-        
+
 def CalculateUncertaintyForSampleParallel(speech_sample):
     print("Hi from parallel function")
     # we use global model and processor, because we cannot pass them as arguments to the parallel function
     # due to the fact that the parallel function is called by the pool.apply_async function
     # and the arguments to the parallel function must be picklable (and torch model is not picklable)
-    
+
     return CalculateUncertaintyForSample(processor, speech_sample, model)
 
 
 def CalculateUncertaintyFor_N_Samples_Parallel(ctx, ds_processed, n_samples):
-    
+
     pool = ctx.Pool(processes=n_samples)
     #pool = multiprocessing.Pool()
     results = []
@@ -118,13 +118,13 @@ def CalculateUncertaintyFor_N_Samples_Parallel(ctx, ds_processed, n_samples):
         speech_sample = ds_processed[i]
         result = pool.apply_async(CalculateUncertaintyForSampleParallel, (([speech_sample])))
         results.append(result)
-    
+
     pool.close()
     pool.join()
     uncertainties = [result.get() for result in results]
 
-    
-    # TODO for loop above is necessary to be parallelized, 
+
+    # TODO for loop above is necessary to be parallelized,
     # but the for loop will be replaced with a sort and select top results
     for i, uncertainty in enumerate(uncertainties):
         speech_sample = ds_processed[i]
@@ -139,7 +139,7 @@ def CalculateUncertaintyFor_N_Samples(ctx, ds_processed, n_samples, parallel=Fal
 
 
 def main():
-    ctx = mp.get_context('spawn') 
+    ctx = mp.get_context('spawn')
     CalculateUncertaintyFor_N_Samples(ctx, ds_processed, n_samples=4, parallel=PARALLEL)
 
 
@@ -158,4 +158,3 @@ transcription = TranscribeUsingBaseModel(processor, model, speech_sample)
 print("Transcription with base model:", transcription)
 print("WER given the label:", wer(label, transcription))
 '''
-
