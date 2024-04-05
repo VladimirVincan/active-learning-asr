@@ -19,8 +19,12 @@ model_path = "facebook/wav2vec2-base-960h"
 processor = Wav2Vec2Processor.from_pretrained(model_path)
 model = Wav2Vec2ForCTC.from_pretrained(model_path)
 
-ds = load_dataset("patrickvonplaten/librispeech_asr_dummy", "clean", split="validation")
+# ds = load_dataset("patrickvonplaten/librispeech_asr_dummy", "clean", split="validation")
+# print(ds)
+# print(ds[0])
+# exit()
 #ds = load_dataset("mozilla-foundation/common_voice_16_1", "sr", split="test")
+ds = load_dataset('../data/cluster_subtractor', split='validation')
 
 # Preprocess the audio and set format to torch.
 ds_processed = (
@@ -30,7 +34,7 @@ ds_processed = (
 
 
 speech_sample = ds_processed[2]
-label = speech_sample["text"]
+label = speech_sample["sentence"]
 #print("Label:", label)
 
 def TranscribeUsingDropout(processor, model, speech_sample):
@@ -96,7 +100,7 @@ def CalculateUncertaintyFor_N_Samples_Sequential(ds_processed, n_samples):
 
     for i, result in enumerate(results):
         speech_sample = ds_processed[i]
-        print("Uncertainty for sample", speech_sample['file'], "is:", result)
+        print("Uncertainty for sample", speech_sample['path'], "is:", result)
 
 #----------------- Parallel version -----------------#
 
@@ -128,7 +132,7 @@ def CalculateUncertaintyFor_N_Samples_Parallel(ctx, ds_processed, n_samples):
     # but the for loop will be replaced with a sort and select top results
     for i, uncertainty in enumerate(uncertainties):
         speech_sample = ds_processed[i]
-        print("Uncertainty for sample", speech_sample['file'], "is:", uncertainty)
+        print("Uncertainty for sample", speech_sample['path'], "is:", uncertainty)
 
 
 def CalculateUncertaintyFor_N_Samples(ctx, ds_processed, n_samples, parallel=False):
