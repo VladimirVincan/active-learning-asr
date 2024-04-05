@@ -20,9 +20,6 @@ processor = Wav2Vec2Processor.from_pretrained(model_path)
 model = Wav2Vec2ForCTC.from_pretrained(model_path)
 
 # ds = load_dataset("patrickvonplaten/librispeech_asr_dummy", "clean", split="validation")
-# print(ds)
-# print(ds[0])
-# exit()
 #ds = load_dataset("mozilla-foundation/common_voice_16_1", "sr", split="test")
 ds = load_dataset('../data/cluster_subtractor', split='validation')
 
