@@ -1,6 +1,7 @@
 import sys
 from dataclasses import dataclass, field
 
+import numpy as np
 import pandas as pd
 import torch
 import torch.multiprocessing as mp
@@ -50,6 +51,9 @@ def load_dataset_fn(data_args):
     return ds
 
 
+torch.manual_seed(42)
+np.random.seed(42)
+
 parser = HfArgumentParser((DataArguments))
 if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
     data_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
@@ -62,7 +66,6 @@ processor = Wav2Vec2Processor.from_pretrained(data_args.model_dir)
 model = Wav2Vec2ForCTC.from_pretrained(data_args.model_dir)
 mc_dropout_model = MCDropoutModule(model)
 ds = load_dataset_fn(data_args)
-print('--- FINISH INIT ---')
 
 
 def transcribe_using_base_model(speech_sample):
@@ -104,7 +107,6 @@ def transcribe_using_dropout(speech_sample):
     return transcription
 
 def calculate_uncertainty_for_sample(speech_sample, NUM_ITERATIONS=20):
-    print('--- hello from sample ---')
     base_transcription = transcribe_using_base_model(speech_sample)
     wer_list = []
     for i in range(NUM_ITERATIONS):

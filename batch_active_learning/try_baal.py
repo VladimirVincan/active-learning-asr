@@ -2,6 +2,7 @@
 
 import multiprocessing
 
+import numpy as np
 import torch
 import torch.multiprocessing as mp
 from baal.active.heuristics import BALD
@@ -12,21 +13,26 @@ from jiwer import wer
 from transformers import TrainingArguments, Wav2Vec2ForCTC, Wav2Vec2Processor
 
 PARALLEL = False
+PARALLEL = True
+
+torch.manual_seed(42)
+np.random.seed(42)
 
 # load model and tokenizer
 model_path = "facebook/wav2vec2-base-960h"
+model_path = '../model/0706f64c-4f4b-4d26-ba24-28e841bfa371'
 #model_path = "philschmid/tiny-random-wav2vec2"
 processor = Wav2Vec2Processor.from_pretrained(model_path)
 model = Wav2Vec2ForCTC.from_pretrained(model_path)
 
 # ds = load_dataset("patrickvonplaten/librispeech_asr_dummy", "clean", split="validation")
 #ds = load_dataset("mozilla-foundation/common_voice_16_1", "sr", split="test")
-ds = load_dataset('../data/cluster_subtractor', split='validation')
+ds = load_dataset('../data/cluster_subtractor', split='validation[:5%]')
 
 # Preprocess the audio and set format to torch.
 ds_processed = (
     ds.map(
-        lambda u: {k: v[0] for k, v in processor(u["audio"]["array"], return_tensors="pt", padding="longest").items()})
+        lambda u: {k: v[0] for k, v in processor(u["audio"]["array"], return_tensors="pt", padding="longest", sampling_rate=16000).items()})
     .with_format("torch"))
 
 
@@ -80,7 +86,7 @@ def CalculateUncertaintyForSample(processor, speech_sample, model):
 
     base_transcription = TranscribeUsingBaseModel(processor, model, speech_sample)
     wer_list = []
-    for i in range(20):
+    for i in range(2):
         transcription = TranscribeUsingDropout(processor, model, speech_sample)
         wer_list.append(wer(base_transcription, transcription))
     return sum(wer_list) / len(wer_list)
@@ -112,12 +118,14 @@ def CalculateUncertaintyForSampleParallel(speech_sample):
 
 def CalculateUncertaintyFor_N_Samples_Parallel(ctx, ds_processed, n_samples):
 
-    pool = ctx.Pool(processes=n_samples)
+    pool = ctx.Pool(processes=2)
     #pool = multiprocessing.Pool()
     results = []
     for i in range(n_samples):
         speech_sample = ds_processed[i]
+        print(speech_sample)
         result = pool.apply_async(CalculateUncertaintyForSampleParallel, (([speech_sample])))
+        # print(result)
         results.append(result)
 
     pool.close()
@@ -141,7 +149,7 @@ def CalculateUncertaintyFor_N_Samples(ctx, ds_processed, n_samples, parallel=Fal
 
 def main():
     ctx = mp.get_context('spawn')
-    CalculateUncertaintyFor_N_Samples(ctx, ds_processed, n_samples=4, parallel=PARALLEL)
+    CalculateUncertaintyFor_N_Samples(ctx, ds_processed, n_samples=5, parallel=PARALLEL)
 
 
 if __name__ == '__main__':
