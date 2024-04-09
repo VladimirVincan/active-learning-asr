@@ -59,6 +59,7 @@ class DatasetSubtractor():
         self._df1_train = self._remove_subset_from_original(self._df1_train, self._df2)
         self._df_final = pd.concat([self._df1_train, self._df1_others]).reset_index(drop=True)
         self._df_final.drop(['split'], axis=1, inplace=True)
+        self._df_final['file_name'] = self._df_final[self._path_column]
         self._symlink_csv(self._df_final, os.path.dirname(self._csv1), self._folder)
 
     def _divide_df_train_others(self, df, split='train'):
