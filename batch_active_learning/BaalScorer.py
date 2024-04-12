@@ -125,24 +125,19 @@ def calculate_uncertainty_for_all_samples_sequential():
 
     results.to_csv('results.csv', index=False)
 
-def calculate_uncertainty_for_all_samples_parallel(processes=2):
+def calculate_uncertainty_for_all_samples_parallel(processes=32):
     pool = ctx.Pool(processes=processes)
     print('--- STARTING UNCERTAINTY PARALLEL ---')
     results = pd.DataFrame(columns=['path', 'uncertainty'])
     uncertainties = []
     for i, speech_sample in enumerate(ds):
-        print(speech_sample)
         uncertainty = pool.apply_async(calculate_uncertainty_for_sample, (([speech_sample])))
         uncertainties.append(uncertainty)
-        if i == 4:
-            break
 
-    # if i % processes == processes-1 or i == self._num_rows-1:
     pool.close()
     pool.join()
 
     for i, result in enumerate(uncertainties):
-        # print(result.get())
         speech_sample = ds[i]
         dict = {'path': speech_sample['path'], 'uncertainty': result.get()}
         results = results.append(dict, ignore_index=True)
