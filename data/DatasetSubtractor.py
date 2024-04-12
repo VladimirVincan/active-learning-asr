@@ -53,10 +53,11 @@ class DatasetSubtractor():
 
         self._df1 = pd.read_csv(self._csv1)
         self._df2 = pd.read_csv(self._csv2)
-        print(self._df2)
+        # print(self._df2)
         self._df2.drop(['cluster', 'file_name'], axis=1, inplace=True)
         self._df1_train, self._df1_others = self._divide_df_train_others(self._df1)
         self._df1_train = self._remove_subset_from_original(self._df1_train, self._df2)
+
         self._df_final = pd.concat([self._df1_train, self._df1_others]).reset_index(drop=True)
         self._df_final.drop(['split'], axis=1, inplace=True)
         self._df_final['file_name'] = self._df_final[self._path_column]
@@ -87,9 +88,10 @@ class DatasetSubtractor():
     def _remove_subset_from_original(self, df_original, df_subset):
         df = df_original.merge(df_subset, how='left', indicator = True)
         df.reset_index(drop=True, inplace=True)
-        df = df[df['_merge'] == 'left_only']
-        print(df_original)
         print(df)
+        df = df[df['_merge'] == 'left_only']
+        # print(df_original)
+        # print(df)
         df.drop(['_merge'], axis=1, inplace=True)
         return df
 

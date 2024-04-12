@@ -25,7 +25,7 @@ class DatasetAnalyzer(DatasetDownloader):
         num_files = len(files)
         return num_files
 
-    def duration(self):
+    def duration_folder(self):
         """
         Returns the total duration of the audio folder in seconds.
         """
@@ -38,6 +38,13 @@ class DatasetAnalyzer(DatasetDownloader):
 
         return total_duration_seconds
 
+    def duration(self):
+        duration = 0
+        for index, row in self._df.iterrows():
+            audio = AudioSegment.from_file(os.path.join(self._folder, 'clips', self._df.loc[index, self._path_column]))
+            duration += audio.duration_seconds
+        return duration
+
     def speaker_counts(self, speaker_num=-1):
         """
         Prints the speaker id and number of audio files that the speaker appeared in.
@@ -48,6 +55,65 @@ class DatasetAnalyzer(DatasetDownloader):
             # create a shorter dict with the top speaker_num speakers
             speaker_counts = dict(list(speaker_counts.items())[:speaker_num])
         return speaker_counts
+
+    def number_of_speakers(self):
+        """
+        Prints the total number of speakers.
+        """
+        speaker_counts = self._df[self._speaker_column].value_counts()
+        return len(speaker_counts)
+
+    def mean(self):
+        """
+        Prints the average number of audio files per speaker.
+        """
+        speaker_counts = self._df[self._speaker_column].value_counts()
+        return speaker_counts.mean()
+
+    def variance(self):
+        """
+        Prints the average number of audio files per speaker.
+        """
+        speaker_counts = self._df[self._speaker_column].value_counts()
+        return speaker_counts.var()
+
+    def skew(self):
+        """
+        Prints the average number of audio files per speaker.
+        """
+        speaker_counts = self._df[self._speaker_column].value_counts()
+        return speaker_counts.skew()
+
+    def kurtosis(self):
+        """
+        Prints the average number of audio files per speaker.
+        """
+        speaker_counts = self._df[self._speaker_column].value_counts()
+        return speaker_counts.kurtosis()
+
+    def count_ones(self):
+        """
+        Prints the average number of audio files per speaker.
+        """
+        speaker_counts = self._df[self._speaker_column].value_counts()
+        ones = (speaker_counts == 1).sum()
+        return ones
+
+    def duration_per_file(self):
+        """
+        Returns a pd df with duration for every file
+        """
+        self._df['duration'] = 0.0
+        for index, row in self._df.iterrows():
+            audio = AudioSegment.from_file(os.path.join(self._folder, 'clips', self._df.loc[index, self._path_column]))
+            duration = audio.duration_seconds
+            self._df.loc[index, 'duration'] = duration
+        # print(self._df.head())
+        print(self._df['duration'].mean())
+        print(self._df['duration'].var())
+        print(self._df['duration'].skew())
+        print(self._df['duration'].kurtosis())
+
 
     def duration_per_speaker(self, speaker_num=-1):
         """
@@ -97,6 +163,26 @@ def main():
 
     num_files = dataset_analyzer.file_number()
     print(f"Total number of audio files in the folder: {num_files}")
+
+    num_speakers = dataset_analyzer.number_of_speakers()
+    print(f"Total number of different speakers in the folder: {num_speakers}")
+
+    average_files = dataset_analyzer.mean()
+    print(f"[mean] Total number of different speakers in the folder: {average_files}")
+
+    var = dataset_analyzer.variance()
+    print(f"[var] Total number of different speakers in the folder: {var}")
+
+    skew = dataset_analyzer.skew()
+    print(f"[skew] Total number of different speakers in the folder: {skew}")
+
+    kurtosis = dataset_analyzer.kurtosis()
+    print(f"[kurtosis] Total number of different speakers in the folder: {kurtosis}")
+
+    ones = dataset_analyzer.count_ones()
+    print(f"Total number of single speaker-file pairs in the folder: {ones}")
+
+    dataset_analyzer.duration_per_file()
 
 
 if __name__ == '__main__':

@@ -179,6 +179,7 @@ class ClusterSampler():
             value_counts['sample_percentage'] = value_counts['cluster'] / total_rows
             value_counts = self._inverse_sampling_function(value_counts, total_rows)
             print(value_counts)
+            value_counts.to_csv(os.path.join(self._folder, 'value_counts.csv'), index=False)
 
             # group = df.groupby('cluster', group_keys=False).apply(lambda x: print(value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0]))
             group = df.groupby('cluster', group_keys=False).apply(lambda x: x.sample(n=value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0], random_state=42))
@@ -209,14 +210,14 @@ class ClusterSampler():
         value_counts['affine_linear'] = (ymin-ymax)*value_counts['sample_percentage'] + ymax
         value_counts['num_samples'] = ( value_counts['affine_linear'] * value_counts['cluster'] ).astype(int)
         selected_number_of_rows = value_counts['num_samples'].sum()
-        print('affine inear num rows: ' + str(selected_number_of_rows))
+        print('affine linear num rows: ' + str(selected_number_of_rows))
         return value_counts
 
     def _create_relative_symlink(self, src, dst):
         directory = os.path.dirname(dst)
         src = os.path.realpath(src)
-        shutil.copy(src, dst)
-        # os.symlink(src, dst)
+        # shutil.copy(src, dst)
+        os.symlink(src, dst)
 
     def _symlink_csv(self, df, input_folder, output_folder):
         """
