@@ -1,8 +1,12 @@
+import csv
+import os
 import sys
 from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
+import psutil
+import ray
 import torch
 import torch.multiprocessing as mp
 from baal.bayesian.dropout import MCDropoutModule
@@ -19,8 +23,8 @@ class DataArguments:
     model_dir: str = field(
         default='../model/0706f64c-4f4b-4d26-ba24-28e841bfa371'
     )
-    folder: str = field(
-        default='cluster_subtractor',
+    csv: str = field(
+        default='../uncertainties/results.csv',
         metadata={'help': 'Name of folder where data will be stored.'})
     label_column: str = field(
         default='sentence',
@@ -37,7 +41,8 @@ class DataArguments:
 
 
 def load_dataset_fn(data_args):
-    ds = load_dataset(data_args.dataset_dir, split='validation[:5%]')
+    # ds = load_dataset(data_args.dataset_dir, split='train+validation')
+    ds = load_dataset(data_args.dataset_dir, split='validation[:2%]')
     ds = (
         ds.map(
             lambda u:
@@ -61,14 +66,11 @@ else:
     data_args = parser.parse_args_into_dataclasses()
 data_args = data_args[0]
 
-ctx = mp.get_context('spawn')
 processor = Wav2Vec2Processor.from_pretrained(data_args.model_dir)
-model = Wav2Vec2ForCTC.from_pretrained(data_args.model_dir)
-mc_dropout_model = MCDropoutModule(model)
 ds = load_dataset_fn(data_args)
 
 
-def transcribe_using_base_model(speech_sample):
+def transcribe_using_base_model(model, processor, speech_sample):
     input_values = speech_sample['input_values']
 
     # Ensure input is of correct shape [batch_size, sequence_length]
@@ -87,7 +89,8 @@ def transcribe_using_base_model(speech_sample):
 
     return transcription
 
-def transcribe_using_dropout(speech_sample):
+def transcribe_using_dropout(model, processor, speech_sample):
+    mc_dropout_model = MCDropoutModule(model)
     input_values = speech_sample['input_values']
 
     # Ensure input is of correct shape [batch_size, sequence_length]
@@ -106,50 +109,50 @@ def transcribe_using_dropout(speech_sample):
 
     return transcription
 
-def calculate_uncertainty_for_sample(speech_sample, NUM_ITERATIONS=20):
-    base_transcription = transcribe_using_base_model(speech_sample)
+@ray.remote
+def calculate_uncertainty_for_sample(processor_id, speech_sample, NUM_ITERATIONS=20):
+    model = Wav2Vec2ForCTC.from_pretrained(data_args.model_dir)
+    base_transcription = transcribe_using_base_model(model, processor_id, speech_sample)
     wer_list = []
     for i in range(NUM_ITERATIONS):
-        transcription = transcribe_using_dropout(speech_sample)
+        transcription = transcribe_using_dropout(model, processor_id, speech_sample)
         wer_list.append(wer(base_transcription, transcription))
     return sum(wer_list)/len(wer_list)
 
-def calculate_uncertainty_for_all_samples_sequential():
-    print('--- STARTING UNCERTAINTY SEQUENTIAL ---')
-    results = pd.DataFrame(columns=['path', 'uncertainty'])
-    for i, speech_sample in enumerate(ds):
-        uncertainty = calculate_uncertainty_for_sample(speech_sample)
-        dict = {'path': speech_sample['path'], 'uncertainty': uncertainty}
-        results = results.append(dict, ignore_index=True)
-        print(dict)
-
-    results.to_csv('results.csv', index=False)
-
-def calculate_uncertainty_for_all_samples_parallel(processes=32):
-    pool = ctx.Pool(processes=processes)
+def calculate_uncertainty_for_all_samples_parallel():
     print('--- STARTING UNCERTAINTY PARALLEL ---')
     results = pd.DataFrame(columns=['path', 'uncertainty'])
-    uncertainties = []
-    for i, speech_sample in enumerate(ds):
-        uncertainty = pool.apply_async(calculate_uncertainty_for_sample, (([speech_sample])))
-        uncertainties.append(uncertainty)
 
-    pool.close()
-    pool.join()
+    # procesor moze da se stavi u ray.put, a model ne moze zbog serijalizacije, pa njega saljemo kao argument
+    processor = Wav2Vec2Processor.from_pretrained(data_args.model_dir)
+    processor_id = ray.put(processor)
+
+    future_uncertainties = []
+    for i, speech_sample in enumerate(ds):
+        print(i)
+        future_uncertainty = calculate_uncertainty_for_sample.remote(processor_id, speech_sample)
+        future_uncertainties.append(future_uncertainty)
+
+    # collect results
+    uncertainties = ray.get(future_uncertainties)
+    print('--- AFTER RAY GET ---')
 
     for i, result in enumerate(uncertainties):
         speech_sample = ds[i]
         dict = {'path': speech_sample['path'], 'uncertainty': result.get()}
-        results = results.append(dict, ignore_index=True)
+        # results = results.append(dict, ignore_index=True)
+        results = pd.concat([results, dict], axis=1, ignore_index=True)
         print(dict)
-    uncertainties = []
 
-    results.to_csv('results.csv', index=False)
+    results.to_csv(data_args.csv, index=False)
+
+    ray.shutdown()
 
 
 def main():
-
-    # calculate_uncertainty_for_all_samples_sequential()
+    num_cpus = psutil.cpu_count(logical=True)
+    print(num_cpus)
+    ray.init(num_cpus=2)
     calculate_uncertainty_for_all_samples_parallel()
 
 
