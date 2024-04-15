@@ -53,8 +53,9 @@ class DatasetSubtractor():
 
         self._df1 = pd.read_csv(self._csv1)
         self._df2 = pd.read_csv(self._csv2)
-        # print(self._df2)
         self._df2.drop(['cluster', 'file_name'], axis=1, inplace=True)
+        self._check_if_subset(self._df1, self._df2)
+
         self._df1_train, self._df1_others = self._divide_df_train_others(self._df1)
         self._df1_train = self._remove_subset_from_original(self._df1_train, self._df2)
 
@@ -62,6 +63,12 @@ class DatasetSubtractor():
         self._df_final.drop(['split'], axis=1, inplace=True)
         self._df_final['file_name'] = self._df_final[self._path_column]
         self._symlink_csv(self._df_final, os.path.dirname(self._csv1), self._folder)
+
+    def _check_if_subset(self, df1, df2):
+        df = df1.merge(df2, how='right', indicator = True)
+        df.reset_index(drop=True, inplace=True)
+        df = df[df['_merge'] == 'right_only']
+        print(df)
 
     def _divide_df_train_others(self, df, split='train'):
         """
