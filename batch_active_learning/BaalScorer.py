@@ -42,6 +42,9 @@ class DataArguments:
         default='inverse',
         metadata={'help': 'inverse or smca'}
     )
+    num_cpus: int = field(
+        default=2
+    )
 
 
 def load_dataset_fn(data_args):
@@ -154,9 +157,8 @@ def calculate_uncertainty_for_all_samples_parallel():
 
 
 def main():
-    num_cpus = psutil.cpu_count(logical=True)
-    print(num_cpus)
-    ray.init(num_cpus=2)
+    # num_cpus = psutil.cpu_count(logical=True)
+    ray.init(num_cpus=data_args.num_cpus)
     calculate_uncertainty_for_all_samples_parallel()
 
 
