@@ -44,13 +44,8 @@ class DataArguments:
 
 
 def load_dataset_fn(data_args):
-<<<<<<< HEAD
-    # ds = load_dataset(data_args.dataset_dir, split='train+validation')
-    ds = load_dataset(data_args.dataset_dir, split='validation[:1%]')
-=======
     ds = load_dataset(data_args.dataset_dir, split='train+validation')
-    # ds = load_dataset(data_args.dataset_dir, split='validation[:1%]')
->>>>>>> 4a2b85c61425b2aa5e01cb634ab8ca2b3d459eba
+    # ds = load_dataset(data_args.dataset_dir, split='validation[:8%]')
     ds = (
         ds.map(
             lambda u:
@@ -148,13 +143,9 @@ def calculate_uncertainty_for_all_samples_parallel():
     for i, result in enumerate(uncertainties):
         speech_sample = ds[i]
         dict = {'path': speech_sample['path'], 'uncertainty': result}
-<<<<<<< HEAD
-        dict = pd.DataFrame.from_dict(dict)
-=======
->>>>>>> 4a2b85c61425b2aa5e01cb634ab8ca2b3d459eba
-        # results = results.append(dict, ignore_index=True)
-        results = pd.concat([results, dict], axis=1, ignore_index=True)
+        dict = pd.DataFrame(dict, index=[0])
         print(dict)
+        results = pd.concat([results, dict], axis=0, ignore_index=True)
 
     results.to_csv(data_args.csv, index=False)
 
@@ -163,6 +154,7 @@ def calculate_uncertainty_for_all_samples_parallel():
 
 def main():
     # num_cpus = psutil.cpu_count(logical=True)
+    print('num cpus: ' + str(data_args.num_cpus))
     ray.init(num_cpus=data_args.num_cpus)
     calculate_uncertainty_for_all_samples_parallel()
 
