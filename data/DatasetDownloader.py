@@ -147,12 +147,12 @@ class DatasetDownloader:
                 break
 
         df = pd.DataFrame(rows)
-        # file_name column necessary for load_dataset to work properly
-        df['file_name'] = df[self._path_column]
         if self._dataset.find('librispeech') >= 0:
             df = self._process_librispeech(df)
         elif self._dataset.find('common_voice') >= 0:
             df = self._process_common_voice(df)
+        # file_name column necessary for load_dataset to work properly
+        df['file_name'] = df[self._path_column]
         df.to_csv(os.path.join(self._cache, self._csv), index=False, header=True)
 
         self._move_file(os.path.join(self._cache, self._csv), self._folder)
