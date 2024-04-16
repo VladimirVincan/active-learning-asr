@@ -22,7 +22,9 @@ class DataArguments:
     )
     split1: str = field(
         default='train',
-        metadata={'help': 'Options: train/dev/test/same/split. Same means keep the same distribution if the data is already split.'}
+        metadata={'help':
+                  'Options: train/dev/test/same/split. \
+                  Same means keep the same distribution if the data is already split.'}
     )
     split2: str = field(
         default='train',
@@ -55,6 +57,10 @@ class DataArguments:
         default='speaker_id',
         metadata={'help': 'Name of column name that has names/ids of speakers.'}
     )
+    symlink: bool = field(
+        default=True,
+        metadata={'help': 'os.path.symlink (true) or shutil.copy (false).'}
+    )
 
 
 class TrainingCreator:
@@ -69,6 +75,7 @@ class TrainingCreator:
         self._label_column = data_args.label_column
         self._path_column = data_args.path_column
         self._speaker_column = data_args.speaker_column
+        self._symlink = data_args.symlink
 
         self._df1 = pd.read_csv(self._csv1)
         if self._speaker_id_1 != '':
@@ -81,7 +88,10 @@ class TrainingCreator:
         dir = os.path.dirname(dst)
         src = os.path.realpath(src)
         src = os.path.relpath(src, dir)
-        return os.symlink(src, dst)
+        if self._symlink:
+            return os.symlink(src, dst)
+        else:
+            return shutil.copy(src, dst)
 
     def _create_filepath(self):
         if os.path.exists(self._folder):

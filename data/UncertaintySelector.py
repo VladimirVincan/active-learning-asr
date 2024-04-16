@@ -7,6 +7,7 @@ from pathlib import Path
 
 import datasets
 import pandas as pd
+from sklearn.metrics.pairwise import _num_samples
 from sklearn.model_selection import train_test_split
 from transformers import HfArgumentParser
 
@@ -15,7 +16,7 @@ from transformers import HfArgumentParser
 class DataArguments:
     csv: str = field(
         default='final_inverse_2/metadata.csv',
-        metadata={'help': 'Csv file of the dataset for which uncertainties were calculated.'}
+        metadata={'help': 'Csv file of the dataset for which uncertainties have been calculated.'}
     )
     uncertainties: str = field(
         default='../batch_active_learning/uncertainties.csv',
@@ -26,7 +27,8 @@ class DataArguments:
         metadata={'help': 'Name of pkl dump file of clusters list.'}
     )
     value_counts: str = field(
-        default='cluster_sampler_inverse/value_counts.csv'
+        default='cluster_sampler_inverse/value_counts.csv',
+        metadata={'help': 'how many files should be sampled. do not change'}
     )
     folder: str = field(
         default='cluster_sampler',
@@ -43,6 +45,10 @@ class DataArguments:
     speaker_column: str = field(
         default='speaker_id',
         metadata={'help': 'Name of column name that has names/ids of speakers.'}
+    )
+    algorithm: str = field(
+        default='inverse',
+        metadata={'help': 'inverse or smca'}
     )
 
 
@@ -83,6 +89,7 @@ class UncertaintySelector():
         self._label_column = data_args.label_column
         self._path_column = data_args.path_column
         self._speaker_column = data_args.speaker_column
+        self._algorithm = data_args.algorithm
 
         self._df = pd.read_csv(self._csv)
         self._df_uncertainties = pd.read_csv(self._uncertainties)
@@ -117,7 +124,12 @@ class UncertaintySelector():
         Etc.
         """
         # df_sampled = df.groupby('cluster', group_keys=False).apply(lambda x: x.sample(n=value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0], random_state=42))
-        df_sampled = df.groupby('cluster', group_keys=False).apply(lambda x: x.nlargest(value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0], 'uncertainty'))
+        if self._algorithm == 'inverse':
+            df_sampled = df.groupby('cluster', group_keys=False).apply(lambda x: x.nlargest(value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0], 'uncertainty'))
+        else:  # if self._algorithm == 'smca'
+            num_samples = value_counts['num_samples'].sum()
+            print(num_samples)
+            df_sampled = df.nlargest(num_samples, 'uncertainty')
         return df_sampled
 
     def _assert_uncertainties_not_nan(self, df):
