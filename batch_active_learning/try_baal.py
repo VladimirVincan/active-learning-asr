@@ -9,7 +9,7 @@ from baal.active.heuristics import BALD
 from baal.bayesian.dropout import MCDropoutModule, patch_module
 from baal.transformers_trainer_wrapper import BaalTransformersTrainer
 from datasets import DatasetDict, load_dataset
-from jiwer import wer
+from jiwer import cer, wer
 from transformers import TrainingArguments, Wav2Vec2ForCTC, Wav2Vec2Processor
 
 PARALLEL = False
@@ -92,6 +92,11 @@ def CalculateUncertaintyForSample(processor, speech_sample, model):
     return sum(wer_list) / len(wer_list)
 
 
+def CalculateUncertaintyForSample_Using_SMCA(processor, speech_sample, model):
+    
+    base_transcription = TranscribeUsingBaseModel(processor, model, speech_sample)
+    dropout_transcription = TranscribeUsingDropout(processor, model, speech_sample)
+    return cer(base_transcription, dropout_transcription)
 
 
 def CalculateUncertaintyFor_N_Samples_Sequential(ds_processed, n_samples):
@@ -140,16 +145,20 @@ def CalculateUncertaintyFor_N_Samples_Parallel(ctx, ds_processed, n_samples):
         print("Uncertainty for sample", speech_sample['path'], "is:", uncertainty)
 
 
-def CalculateUncertaintyFor_N_Samples(ctx, ds_processed, n_samples, parallel=False):
-    if parallel:
-        CalculateUncertaintyFor_N_Samples_Parallel(ctx, ds_processed, n_samples)
-    else:
-        CalculateUncertaintyFor_N_Samples_Sequential(ds_processed, n_samples)
+def CalculateUncertaintyFor_N_Samples_Using_SMCA(ds_processed, n_samples):
+    results = []
+    for i in range(n_samples):
+        speech_sample = ds_processed[i]
+        uncertainty = CalculateUncertaintyForSample_Using_SMCA(processor, speech_sample, model)
+        print("Uncertainty for sample Using SMCA", speech_sample['file'], "is:", uncertainty)
+        results.append(uncertainty)
+
 
 
 def main():
     ctx = mp.get_context('spawn')
-    CalculateUncertaintyFor_N_Samples(ctx, ds_processed, n_samples=5, parallel=PARALLEL)
+    #CalculateUncertaintyFor_N_Samples(ctx, ds_processed, n_samples=4, parallel=PARALLEL)
+    CalculateUncertaintyFor_N_Samples_Using_SMCA(ds_processed, n_samples=4)
 
 
 if __name__ == '__main__':
