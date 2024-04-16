@@ -38,6 +38,10 @@ class DataArguments:
         default='speaker_id',
         metadata={'help': 'Name of column name that has names/ids of speakers.'}
     )
+    algorithm: str = field(
+        default='inverse',
+        metadata={'help': 'inverse or smca'}
+    )
 
 
 def load_dataset_fn(data_args):
