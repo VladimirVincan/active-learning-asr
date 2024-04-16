@@ -38,6 +38,9 @@ class DataArguments:
         default='speaker_id',
         metadata={'help': 'Name of column name that has names/ids of speakers.'}
     )
+    num_cpus: int = field(
+        default=2
+    )
 
 
 def load_dataset_fn(data_args):
@@ -140,6 +143,7 @@ def calculate_uncertainty_for_all_samples_parallel():
     for i, result in enumerate(uncertainties):
         speech_sample = ds[i]
         dict = {'path': speech_sample['path'], 'uncertainty': result}
+        dict = pd.DataFrame.from_dict(dict)
         # results = results.append(dict, ignore_index=True)
         results = pd.concat([results, dict], axis=1, ignore_index=True)
         print(dict)
@@ -150,9 +154,8 @@ def calculate_uncertainty_for_all_samples_parallel():
 
 
 def main():
-    num_cpus = psutil.cpu_count(logical=True)
-    print(num_cpus)
-    ray.init(num_cpus=2)
+    # num_cpus = psutil.cpu_count(logical=True)
+    ray.init(num_cpus=data_args.num_cpus)
     calculate_uncertainty_for_all_samples_parallel()
 
 
