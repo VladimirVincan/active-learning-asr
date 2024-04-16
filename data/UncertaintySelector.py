@@ -50,6 +50,10 @@ class DataArguments:
         default='inverse',
         metadata={'help': 'inverse or smca'}
     )
+    symlink: bool = field(
+        default=True,
+        metadata={'help': 'os.path.symlink (true) or shutil.copy (false).'}
+    )
 
 
 class UncertaintySelector():
@@ -90,6 +94,7 @@ class UncertaintySelector():
         self._path_column = data_args.path_column
         self._speaker_column = data_args.speaker_column
         self._algorithm = data_args.algorithm
+        self._symlink = data_args.symlink
 
         self._df = pd.read_csv(self._csv)
         self._df_uncertainties = pd.read_csv(self._uncertainties)
@@ -105,7 +110,11 @@ class UncertaintySelector():
         self._assert_uncertainties_not_nan(df_train)
 
         df_sampled = self._sample(df_train, self._df_value_counts)
-        self._df_out = pd.concat([df_sampled, df_val])
+        # do not do concat anymore
+        # we do not want df_val.
+        # df_val will be added from train_inverse_1
+        # self._df_out = pd.concat([df_sampled, df_val])
+        self._df_out = df_sampled
 
         # self._find_matching_rows(df_sampled, df_train)
 
@@ -216,8 +225,10 @@ class UncertaintySelector():
     def _create_relative_symlink(self, src, dst):
         directory = os.path.dirname(dst)
         src = os.path.realpath(src)
-        shutil.copy(src, dst)
-        # os.symlink(src, dst)
+        if self._symlink:
+            return os.symlink(src, dst)
+        else:
+            return shutil.copy(src, dst)
 
     def _symlink_csv(self, df, input_folder, output_folder):
         """

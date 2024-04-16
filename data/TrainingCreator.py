@@ -61,6 +61,14 @@ class DataArguments:
         default=True,
         metadata={'help': 'os.path.symlink (true) or shutil.copy (false).'}
     )
+    file_path_relative: bool = field(
+        default=False,
+        metadata={'help':
+                  'Originally, it was expected for data to be clips/*.wav. \
+                  only the file name was written in path_column. \
+                  if it is not the case, i.e. the relative file path is written, \
+                  then do not add clips/ to beginning'}
+    )
 
 
 class TrainingCreator:
@@ -76,6 +84,7 @@ class TrainingCreator:
         self._path_column = data_args.path_column
         self._speaker_column = data_args.speaker_column
         self._symlink = data_args.symlink
+        self._file_path_relative = data_args.file_path_relative
 
         self._df1 = pd.read_csv(self._csv1)
         if self._speaker_id_1 != '':
@@ -86,8 +95,9 @@ class TrainingCreator:
 
     def _create_relative_symlink(self, src, dst):
         dir = os.path.dirname(dst)
+        dir = os.path.realpath(dir)
         src = os.path.realpath(src)
-        src = os.path.relpath(src, dir)
+        # src = os.path.relpath(src, dir)
         if self._symlink:
             return os.symlink(src, dst)
         else:
@@ -110,7 +120,8 @@ class TrainingCreator:
             splits = os.listdir(os.path.join(dirname, 'clips'))
             for split in splits:
                 dir = os.path.join(self._folder, 'clips', split)
-                if not os.path.exists(dir) and os.path.isdir(dir):
+                split_dir = os.path.join(dirname, 'clips', split)
+                if not os.path.exists(dir) and os.path.isdir(split_dir):
                     os.mkdir(dir)
 
         elif self._split1 == 'split':
@@ -122,7 +133,8 @@ class TrainingCreator:
             splits = os.listdir(os.path.join(dirname, 'clips'))
             for split in splits:
                 dir = os.path.join(self._folder, 'clips', split)
-                if not os.path.exists(dir) and os.path.isdir(dir):
+                split_dir = os.path.join(dirname, 'clips', split)
+                if not os.path.exists(dir) and os.path.isdir(split_dir):
                     os.mkdir(dir)
 
     def _symlink_csv(self, csv_dir, df, split):
@@ -130,7 +142,11 @@ class TrainingCreator:
         Take a single csv file (dataframe). Copy the audio contents to destination. Create metadata.
         """
         for i, row in df.iterrows():
-            src = os.path.join(csv_dir, 'clips', row[self._path_column])
+            if self._file_path_relative:
+                src = os.path.join(csv_dir, row[self._path_column])
+            else:
+                src = os.path.join(csv_dir, 'clips', row[self._path_column])
+
             if split == 'train' or split == 'dev' or split == 'test':
                 dst = os.path.join(self._folder, 'clips', split, row[self._path_column])
             elif split == 'same':
