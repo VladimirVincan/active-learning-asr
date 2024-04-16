@@ -1,4 +1,8 @@
+*.wav
+*.ods
 *.json
+*.txt
+model/
 samples/
 pretrained_models/
 common_voice/

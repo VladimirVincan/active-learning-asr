@@ -1,3 +1,6 @@
+*/
 common_voice/
 librispeech/
 *cache/
+*.csv
+*.zip

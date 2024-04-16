@@ -1,0 +1,4 @@
+{
+    "csv1": "final/metadata.csv",
+    "csv2": "cluster_sampler_inverse/metadata.csv"
+}

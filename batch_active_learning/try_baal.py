@@ -1,36 +1,43 @@
 # Wav2Vec in Baal
 
-from datasets import load_dataset, DatasetDict
-import torch
-from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC, TrainingArguments
-
-from baal.active.heuristics import BALD
-from baal.bayesian.dropout import patch_module, MCDropoutModule
-from baal.transformers_trainer_wrapper import BaalTransformersTrainer
-from jiwer import wer, cer
 import multiprocessing
+
+import numpy as np
+import torch
 import torch.multiprocessing as mp
+from baal.active.heuristics import BALD
+from baal.bayesian.dropout import MCDropoutModule, patch_module
+from baal.transformers_trainer_wrapper import BaalTransformersTrainer
+from datasets import DatasetDict, load_dataset
+from jiwer import cer, wer
+from transformers import TrainingArguments, Wav2Vec2ForCTC, Wav2Vec2Processor
 
 PARALLEL = False
+PARALLEL = True
+
+torch.manual_seed(42)
+np.random.seed(42)
 
 # load model and tokenizer
 model_path = "facebook/wav2vec2-base-960h"
+model_path = '../model/0706f64c-4f4b-4d26-ba24-28e841bfa371'
 #model_path = "philschmid/tiny-random-wav2vec2"
 processor = Wav2Vec2Processor.from_pretrained(model_path)
 model = Wav2Vec2ForCTC.from_pretrained(model_path)
 
-ds = load_dataset("patrickvonplaten/librispeech_asr_dummy", "clean", split="validation")
+# ds = load_dataset("patrickvonplaten/librispeech_asr_dummy", "clean", split="validation")
 #ds = load_dataset("mozilla-foundation/common_voice_16_1", "sr", split="test")
+ds = load_dataset('../data/cluster_subtractor', split='validation[:5%]')
 
 # Preprocess the audio and set format to torch.
 ds_processed = (
     ds.map(
-        lambda u: {k: v[0] for k, v in processor(u["audio"]["array"], return_tensors="pt", padding="longest").items()})
+        lambda u: {k: v[0] for k, v in processor(u["audio"]["array"], return_tensors="pt", padding="longest", sampling_rate=16000).items()})
     .with_format("torch"))
 
 
 speech_sample = ds_processed[2]
-label = speech_sample["text"]
+label = speech_sample["sentence"]
 #print("Label:", label)
 
 def TranscribeUsingDropout(processor, model, speech_sample):
@@ -76,10 +83,10 @@ def TranscribeUsingBaseModel(processor, model, speech_sample):
 
 
 def CalculateUncertaintyForSample(processor, speech_sample, model):
-    
+
     base_transcription = TranscribeUsingBaseModel(processor, model, speech_sample)
     wer_list = []
-    for i in range(20):
+    for i in range(2):
         transcription = TranscribeUsingDropout(processor, model, speech_sample)
         wer_list.append(wer(base_transcription, transcription))
     return sum(wer_list) / len(wer_list)
@@ -98,42 +105,44 @@ def CalculateUncertaintyFor_N_Samples_Sequential(ds_processed, n_samples):
         speech_sample = ds_processed[i]
         uncertainty = CalculateUncertaintyForSample(processor, speech_sample, model)
         results.append(uncertainty)
-    
+
     for i, result in enumerate(results):
         speech_sample = ds_processed[i]
-        print("Uncertainty for sample", speech_sample['file'], "is:", result)
+        print("Uncertainty for sample", speech_sample['path'], "is:", result)
 
 #----------------- Parallel version -----------------#
-        
+
 def CalculateUncertaintyForSampleParallel(speech_sample):
     print("Hi from parallel function")
     # we use global model and processor, because we cannot pass them as arguments to the parallel function
     # due to the fact that the parallel function is called by the pool.apply_async function
     # and the arguments to the parallel function must be picklable (and torch model is not picklable)
-    
+
     return CalculateUncertaintyForSample(processor, speech_sample, model)
 
 
 def CalculateUncertaintyFor_N_Samples_Parallel(ctx, ds_processed, n_samples):
-    
-    pool = ctx.Pool(processes=n_samples)
+
+    pool = ctx.Pool(processes=2)
     #pool = multiprocessing.Pool()
     results = []
     for i in range(n_samples):
         speech_sample = ds_processed[i]
+        print(speech_sample)
         result = pool.apply_async(CalculateUncertaintyForSampleParallel, (([speech_sample])))
+        # print(result)
         results.append(result)
-    
+
     pool.close()
     pool.join()
     uncertainties = [result.get() for result in results]
 
-    
-    # TODO for loop above is necessary to be parallelized, 
+
+    # TODO for loop above is necessary to be parallelized,
     # but the for loop will be replaced with a sort and select top results
     for i, uncertainty in enumerate(uncertainties):
         speech_sample = ds_processed[i]
-        print("Uncertainty for sample", speech_sample['file'], "is:", uncertainty)
+        print("Uncertainty for sample", speech_sample['path'], "is:", uncertainty)
 
 
 def CalculateUncertaintyFor_N_Samples_Using_SMCA(ds_processed, n_samples):
@@ -147,7 +156,7 @@ def CalculateUncertaintyFor_N_Samples_Using_SMCA(ds_processed, n_samples):
 
 
 def main():
-    ctx = mp.get_context('spawn') 
+    ctx = mp.get_context('spawn')
     #CalculateUncertaintyFor_N_Samples(ctx, ds_processed, n_samples=4, parallel=PARALLEL)
     CalculateUncertaintyFor_N_Samples_Using_SMCA(ds_processed, n_samples=4)
 
@@ -167,4 +176,3 @@ transcription = TranscribeUsingBaseModel(processor, model, speech_sample)
 print("Transcription with base model:", transcription)
 print("WER given the label:", wer(label, transcription))
 '''
-

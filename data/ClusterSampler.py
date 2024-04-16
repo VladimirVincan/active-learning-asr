@@ -68,12 +68,12 @@ class ClusterSampler():
         if os.path.exists(self._folder):
             shutil.rmtree(self._folder)
 
+        self._df = self._remove_bad_transcriptions(self._df)
         self._df_train, self._df_others = self._divide_df_train_others()
         self._df_train = self.assign_cluster_to_df(self._df_train, self._clusters_dicts)
         self._df_train = self._get_sampled_df(self._df_train, self._sampling_method)
 
         self._df_output = pd.concat([self._df_train, self._df_others]).reset_index(drop=True)
-        self._df_output = self._remove_bad_transcriptions(self._df_output)
         # self._df_output[self._path_column] = self._df_output.apply(lambda row: row[self._path_column].replace('clips', 'data'), axis=1)
         self._df_output['file_name'] = self._df_output[self._path_column]
         self._symlink_csv(self._df_output, os.path.dirname(self._csv), self._folder)
@@ -166,6 +166,8 @@ class ClusterSampler():
         """
         if sampling_method == 'stratified':
             df_stratified = df.groupby('cluster', group_keys=False).apply(lambda x: x.sample(frac=frac, random_state=42))
+            value_counts = df['cluster'].value_counts().reset_index()
+            self._value_counts = value_counts
             return df_stratified
         elif sampling_method == 'random':
             df_random = df.sample(frac=frac, random_state=42)
@@ -179,9 +181,17 @@ class ClusterSampler():
             value_counts['sample_percentage'] = value_counts['cluster'] / total_rows
             value_counts = self._inverse_sampling_function(value_counts, total_rows)
             print(value_counts)
+            self._value_counts = value_counts
 
             # group = df.groupby('cluster', group_keys=False).apply(lambda x: print(value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0]))
+            print('-------------')
+            # print(value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'])
             group = df.groupby('cluster', group_keys=False).apply(lambda x: x.sample(n=value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0], random_state=42))
+            print(group)
+            print(group['cluster'].value_counts().get(-1, 0))
+            group_d = group[group.duplicated(keep=False)]
+            print(group_d)
+            group.to_csv('group.csv', index=False)
             return group
 
     def _inverse_sampling_function(self, value_counts, size):
@@ -204,12 +214,12 @@ class ClusterSampler():
         ymax = 0.0738
         """
         ymin = 0.04
-        ymax = 0.09498
+        ymax = 0.095
 
         value_counts['affine_linear'] = (ymin-ymax)*value_counts['sample_percentage'] + ymax
         value_counts['num_samples'] = ( value_counts['affine_linear'] * value_counts['cluster'] ).astype(int)
         selected_number_of_rows = value_counts['num_samples'].sum()
-        print('affine inear num rows: ' + str(selected_number_of_rows))
+        print('affine linear num rows: ' + str(selected_number_of_rows))
         return value_counts
 
     def _create_relative_symlink(self, src, dst):
@@ -230,6 +240,7 @@ class ClusterSampler():
                 os.makedirs(dirname)
             self._create_relative_symlink(src, dst)
         df.to_csv(os.path.join(output_folder, 'metadata.csv'), index=False)
+        self._value_counts.to_csv(os.path.join(self._folder, 'value_counts.csv'), index=False)
 
 
 def main():
