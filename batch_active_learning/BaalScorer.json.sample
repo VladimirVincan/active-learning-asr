@@ -1,0 +1,6 @@
+{
+    "dataset_dir": "../data/final_inverse_2/",
+    "model_dir": "../model/81882f6e-885c-40f3-8066-4514a9e6eca8",
+    "csv": "uncertainties_final_81882f6e.csv",
+    "num_cpus": 64
+}
