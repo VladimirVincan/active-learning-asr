@@ -234,6 +234,9 @@ class TrainingCreator:
         df[self._label_column] = df[self._label_column].str.replace('ó', 'o')
         df[self._label_column] = df[self._label_column].str.replace('&', ' and ')
 
+        # special case: Hunger is good mustard â the best sauce.
+        df[self._label_column] = df[self._label_column].str.replace('mustard â', 'mustard a')
+
         return df
 
     def create_training_data(self):
