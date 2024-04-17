@@ -132,12 +132,51 @@ class ClusterSampler():
 
     def _remove_bad_transcriptions(self, df):
         """
-        Remove ( and ). Change á, ë to a, e
+        Delete [, ], (, ), ` characters.
+        Change:
+        - -> ' '
+        & -> and
+        á -> a,
+        â -> ',
+        ë -> e,
+        é -> e,
+        ñ -> n,
+        ú -> u,
+        ō -> o,
+        ó -> o
+
+        Examples (all from Common Voice):
+        1379     [What] a piece of work [is man]
+        507      Variations (on a musical air) With great rapidity
+        423      Play pop-rap off Google Music.
+        9396     table for five at Space Aliens Grill & Bar in FM
+        1477     A man and a woman on a motorcycle.`
+
+        3414     "Please put maimi yajima's song onto Operación Bikini."
+        5766        add the best of guitar shorty in my playlist clásica
+        6191                    Hunger is good mustard â the best sauce.
+        6900                                      I canât understand it.
+        7179                                            Play a Nóta song
+        8581                Thatâs what you get for testing my patience.
+        10721              Today Iâm making the Internet more inclusive.
         """
-        df = df[~df[self._label_column].str.contains('\(')]
-        df = df[~df[self._label_column].str.contains('\)')]
+        df[self._label_column] = df[self._label_column].str.replace('`', ' ')
+        df[self._label_column] = df[self._label_column].str.replace('[', ' ')
+        df[self._label_column] = df[self._label_column].str.replace(']', ' ')
+        df[self._label_column] = df[self._label_column].str.replace('(', ' ')
+        df[self._label_column] = df[self._label_column].str.replace(')', ' ')
+        df[self._label_column] = df[self._label_column].str.replace('-', ' ')
+
+        df[self._label_column] = df[self._label_column].str.replace('â', '\'')
         df[self._label_column] = df[self._label_column].str.replace('á', 'a')
         df[self._label_column] = df[self._label_column].str.replace('ë', 'e')
+        df[self._label_column] = df[self._label_column].str.replace('é', 'e')
+        df[self._label_column] = df[self._label_column].str.replace('ñ', 'n')
+        df[self._label_column] = df[self._label_column].str.replace('ú', 'u')
+        df[self._label_column] = df[self._label_column].str.replace('ō', 'o')
+        df[self._label_column] = df[self._label_column].str.replace('ó', 'o')
+        df[self._label_column] = df[self._label_column].str.replace('&', ' and ')
+
         return df
 
     def assign_cluster_to_df(self, df, clusters_dicts):
