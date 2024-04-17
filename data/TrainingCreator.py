@@ -191,6 +191,7 @@ class TrainingCreator:
         Change:
         - -> ' '
         & -> and
+        ’ -> '
         á -> a,
         â -> ',
         ë -> e,
@@ -216,6 +217,7 @@ class TrainingCreator:
         10721              Today Iâm making the Internet more inclusive.
         """
         df[self._label_column] = df[self._label_column].str.replace('`', ' ')
+        df[self._label_column] = df[self._label_column].str.replace('’', '\'')
         df[self._label_column] = df[self._label_column].str.replace('[', ' ')
         df[self._label_column] = df[self._label_column].str.replace(']', ' ')
         df[self._label_column] = df[self._label_column].str.replace('(', ' ')
