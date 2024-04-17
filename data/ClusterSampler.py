@@ -210,6 +210,8 @@ class ClusterSampler():
             return df_stratified
         elif sampling_method == 'random':
             df_random = df.sample(frac=frac, random_state=42)
+            value_counts = df['cluster'].value_counts().reset_index()
+            self._value_counts = value_counts
             return df_random
         elif sampling_method == 'inverse':
             # unique_elements = df['cluster'].unique().tolist()
@@ -252,7 +254,7 @@ class ClusterSampler():
         ymin = 0.045
         ymax = 0.0738
         """
-        ymin = 0.04
+        ymin = 0.0397
         ymax = 0.095
 
         value_counts['affine_linear'] = (ymin-ymax)*value_counts['sample_percentage'] + ymax
