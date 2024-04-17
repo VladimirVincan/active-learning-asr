@@ -239,7 +239,7 @@ class TrainingCreator:
         if self._split1 != 'split':
             self._df1 = self._symlink_csv(os.path.dirname(self._csv1), self._df1, self._split1)
         else:
-            train, test = train_test_split(self._df1, test_size=self._split_size)
+            train, test = train_test_split(self._df1, test_size=self._split_size, random_state=42)
             self._df1 = self._symlink_csv(os.path.dirname(self._csv1), train, '_split_1')
             self._df2 = self._symlink_csv(os.path.dirname(self._csv1), test, '_split_2')
         if self._split2 != 'none':

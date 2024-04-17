@@ -28,6 +28,7 @@ python3 TrainingCreator.py \
         --split2="dev" \
         --folder="final"
 
+rm -rf ls_dump
 rm -rf ls_dump_split_1
 rm -rf ls_dump_split_2
 rm -rf ls_cv_train_dump
