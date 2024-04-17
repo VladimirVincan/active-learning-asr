@@ -216,6 +216,9 @@ class TrainingCreator:
         8581                Thatâs what you get for testing my patience.
         10721              Today Iâm making the Internet more inclusive.
         """
+        # special case: Hunger is good mustard â the best sauce.
+        df[self._label_column] = df[self._label_column].str.replace('mustard â', 'mustard a')
+
         df[self._label_column] = df[self._label_column].str.replace('`', ' ')
         df[self._label_column] = df[self._label_column].str.replace('’', '\'')
         df[self._label_column] = df[self._label_column].str.replace('[', ' ')
@@ -233,9 +236,6 @@ class TrainingCreator:
         df[self._label_column] = df[self._label_column].str.replace('ō', 'o')
         df[self._label_column] = df[self._label_column].str.replace('ó', 'o')
         df[self._label_column] = df[self._label_column].str.replace('&', ' and ')
-
-        # special case: Hunger is good mustard â the best sauce.
-        df[self._label_column] = df[self._label_column].str.replace('mustard â', 'mustard a')
 
         return df
 
