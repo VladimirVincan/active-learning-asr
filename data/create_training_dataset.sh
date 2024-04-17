@@ -1,3 +1,7 @@
+if [ ! -f "librispeech/metadata_sorted_selected_dbscan.csv" ]; then
+    cp metadata_sorted_selected_dbscan.csv librispeech/metadata_sorted_selected_dbscan.csv
+fi
+
 rm -rf ls_dump_split_1
 rm -rf ls_dump_split_2
 rm -rf ls_cv_train_dump
