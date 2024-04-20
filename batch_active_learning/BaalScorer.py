@@ -11,7 +11,7 @@ import torch
 import torch.multiprocessing as mp
 from baal.bayesian.dropout import MCDropoutModule
 from datasets import load_dataset
-from jiwer import wer
+from jiwer import cer, wer
 from transformers import HfArgumentParser, Wav2Vec2ForCTC, Wav2Vec2Processor
 
 
@@ -48,7 +48,7 @@ class DataArguments:
 
 
 def load_dataset_fn(data_args):
-    ds = load_dataset(data_args.dataset_dir, split='train+validation')
+    ds = load_dataset(data_args.dataset_dir, split='train')
     # ds = load_dataset(data_args.dataset_dir, split='validation[:8%]')
     ds = (
         ds.map(
@@ -79,6 +79,7 @@ df.to_csv(os.path.join(data_args.dataset_dir, 'metadata.csv'), index=False)
 processor = Wav2Vec2Processor.from_pretrained(data_args.model_dir)
 ds = load_dataset_fn(data_args)
 
+# ============================= TRANSCRIPTION ============================
 
 def transcribe_using_base_model(model, processor, speech_sample):
     input_values = speech_sample['input_values']
@@ -119,6 +120,11 @@ def transcribe_using_dropout(model, processor, speech_sample):
 
     return transcription
 
+# ============================= END TRANSCRIPTION ============================
+
+
+# ============================= INVERSE ============================
+
 @ray.remote
 def calculate_uncertainty_for_sample(processor_id, speech_sample, NUM_ITERATIONS=20):
     model = Wav2Vec2ForCTC.from_pretrained(data_args.model_dir)
@@ -158,12 +164,47 @@ def calculate_uncertainty_for_all_samples_parallel():
 
     ray.shutdown()
 
+# ============================= END INVERSE ============================
+
+
+# ============================= SMCA ============================
+
+if data_args.algorithm == 'smca':
+    model_smca = Wav2Vec2ForCTC.from_pretrained(data_args.model_dir)
+    mc_dropout_model_smca = MCDropoutModule(model_smca)
+
+def calculate_uncertainty_for_sample_SMCA(speech_sample):
+    base_transcription = transcribe_using_base_model(model_smca, processor, speech_sample)
+    dropout_transcription = transcribe_using_dropout(mc_dropout_model_smca, processor, speech_sample)
+    return cer(base_transcription, dropout_transcription)
+
+def calculate_uncertainty_for_all_samples_sequential_SMCA():
+    future_uncertainties = []
+    print('--- STARTING UNCERTAINTY SEQUENTIAL SMCA ---')
+    results = pd.DataFrame(columns=[data_args.path_column, 'uncertainty'])
+    for i, speech_sample in enumerate(ds):
+        uncertainty = calculate_uncertainty_for_sample_SMCA(speech_sample)
+        dict = {data_args.path_column: speech_sample['path'], 'uncertainty': uncertainty}
+        new_row = pd.DataFrame([dict])
+        results = pd.concat([results, new_row], ignore_index=True)
+        print(dict)
+
+    results.to_csv(data_args.csv, index=False)
+
+# ============================= END SMCA ============================
 
 def main():
     # num_cpus = psutil.cpu_count(logical=True)
     print('num cpus: ' + str(data_args.num_cpus))
     ray.init(num_cpus=data_args.num_cpus)
-    calculate_uncertainty_for_all_samples_parallel()
+    if data_args.algorithm == 'inverse':
+        print('starting inverse parallel')
+        calculate_uncertainty_for_all_samples_parallel()
+    elif data_args.algorithm == 'smca':
+        print('starting smca sequential')
+        calculate_uncertainty_for_all_samples_sequential_SMCA()
+    else:
+        raise ValueError('Algorithm not defined!')
 
 
 if __name__ == '__main__':
