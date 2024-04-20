@@ -31,7 +31,7 @@ class DataArguments:
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     path_column: str = field(
-        default='file_name',
+        default='file_name ',
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     speaker_column: str = field(
@@ -73,6 +73,9 @@ else:
     data_args = parser.parse_args_into_dataclasses()
 data_args = data_args[0]
 
+df = pd.read_csv(os.path.join(data_args.dataset_dir, 'metadata.csv'))
+df['path'] = df['file_name']
+df.to_csv(os.path.join(data_args.dataset_dir, 'metadata.csv'))
 processor = Wav2Vec2Processor.from_pretrained(data_args.model_dir)
 ds = load_dataset_fn(data_args)
 
@@ -117,7 +120,7 @@ def transcribe_using_dropout(model, processor, speech_sample):
     return transcription
 
 @ray.remote
-def calculate_uncertainty_for_sample(processor_id, speech_sample, NUM_ITERATIONS=20):
+def calculate_uncertainty_for_sample(processor_id, speech_sample, NUM_ITERATIONS=2):
     model = Wav2Vec2ForCTC.from_pretrained(data_args.model_dir)
     base_transcription = transcribe_using_base_model(model, processor_id, speech_sample)
     wer_list = []
@@ -146,7 +149,7 @@ def calculate_uncertainty_for_all_samples_parallel():
 
     for i, result in enumerate(uncertainties):
         speech_sample = ds[i]
-        dict = {data_args.path_column: speech_sample[data_args.path_column], 'uncertainty': result}
+        dict = {data_args.path_column: speech_sample['path'], 'uncertainty': result}
         dict = pd.DataFrame(dict, index=[0])
         print(dict)
         results = pd.concat([results, dict], axis=0, ignore_index=True)
