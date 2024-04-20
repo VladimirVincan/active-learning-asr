@@ -75,7 +75,7 @@ data_args = data_args[0]
 
 df = pd.read_csv(os.path.join(data_args.dataset_dir, 'metadata.csv'))
 df['path'] = df['file_name']
-df.to_csv(os.path.join(data_args.dataset_dir, 'metadata.csv'))
+df.to_csv(os.path.join(data_args.dataset_dir, 'metadata.csv'), index=False)
 processor = Wav2Vec2Processor.from_pretrained(data_args.model_dir)
 ds = load_dataset_fn(data_args)
 
@@ -120,7 +120,7 @@ def transcribe_using_dropout(model, processor, speech_sample):
     return transcription
 
 @ray.remote
-def calculate_uncertainty_for_sample(processor_id, speech_sample, NUM_ITERATIONS=2):
+def calculate_uncertainty_for_sample(processor_id, speech_sample, NUM_ITERATIONS=20):
     model = Wav2Vec2ForCTC.from_pretrained(data_args.model_dir)
     base_transcription = transcribe_using_base_model(model, processor_id, speech_sample)
     wer_list = []
