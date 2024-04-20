@@ -26,6 +26,7 @@ python3 TrainingCreator.py \
         --csv2="ls_dump_split_2/metadata.csv" \
         --split1="train" \
         --split2="dev" \
+        --symlink="False" \
         --folder="final"
 
 rm -rf ls_dump

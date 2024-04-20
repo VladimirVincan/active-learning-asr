@@ -39,7 +39,7 @@ class DataArguments:
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     path_column: str = field(
-        default='path',
+        default='file_name',
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     speaker_column: str = field(
@@ -48,7 +48,7 @@ class DataArguments:
     )
     algorithm: str = field(
         default='inverse',
-        metadata={'help': 'inverse or smca'}
+        metadata={'help': 'inverse, smca, random'}
     )
     symlink: bool = field(
         default=True,
@@ -97,17 +97,22 @@ class UncertaintySelector():
         self._symlink = data_args.symlink
 
         self._df = pd.read_csv(self._csv)
-        self._df_uncertainties = pd.read_csv(self._uncertainties)
+        if self._algorithm != 'random':
+            self._df_uncertainties = pd.read_csv(self._uncertainties)
         self._df_value_counts = pd.read_csv(self._value_counts)
         with open(self._clusters_dump_name, 'rb') as f:
             self._clusters_dicts = pickle.load(f)
 
+        print(self._df_value_counts['num_samples'].sum())
+        print('-------------------------------')
+
     def generate_dataset(self):
         df_train, df_val = self._divide_df_train_others(self._df)
-        df_train = pd.merge(df_train, self._df_uncertainties, how='left', on='path')
+        if self._algorithm != 'random':
+            df_train = pd.merge(df_train, self._df_uncertainties, how='left', on=self._path_column)
+            self._assert_uncertainties_not_nan(df_train)
         df_train = self._assign_cluster_to_df(df_train, self._clusters_dicts)
         # self._assert_value_counts(df_train)
-        self._assert_uncertainties_not_nan(df_train)
 
         df_sampled = self._sample(df_train, self._df_value_counts)
         # do not do concat anymore
@@ -135,10 +140,13 @@ class UncertaintySelector():
         # df_sampled = df.groupby('cluster', group_keys=False).apply(lambda x: x.sample(n=value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0], random_state=42))
         if self._algorithm == 'inverse':
             df_sampled = df.groupby('cluster', group_keys=False).apply(lambda x: x.nlargest(value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0], 'uncertainty'))
-        else:  # if self._algorithm == 'smca'
+        elif self._algorithm == 'smca':
             num_samples = value_counts['num_samples'].sum()
             print(num_samples)
             df_sampled = df.nlargest(num_samples, 'uncertainty')
+        else:  # if self._algorithm == 'random':
+            num_samples = value_counts['num_samples'].sum()
+            df_sampled = df.sample(n=num_samples, random_state=42)
         return df_sampled
 
     def _assert_uncertainties_not_nan(self, df):
@@ -166,7 +174,7 @@ class UncertaintySelector():
         If matching rows found, print them
         Only values in path column should match.
         """
-        df_matching = pd.merge(df1, df2, on='path', how='inner')
+        df_matching = pd.merge(df1, df2, on=self._path_column, how='inner')
         if not df_matching.empty:
             print(df_matching)
             raise ValueError('DFs should be disjoint!')
@@ -182,7 +190,7 @@ class UncertaintySelector():
         if split == 'none':
             return df
         # https://stackoverflow.com/questions/37333299/splitting-a-pandas-dataframe-column-by-delimiter/52269469#52269469
-        df['split'] = df['path'].str.split('/').str[1]
+        df['split'] = df[self._path_column].str.split('/').str[1]
         condition = df['split'] == split
         df_train = pd.DataFrame(columns=df.columns)
         df_train = df_train.append(df[condition], ignore_index=True)
@@ -199,10 +207,10 @@ class UncertaintySelector():
         """
         clusters_dict = self._convert_clusters_dicts_to_single_dict(clusters_dicts)
         df['cluster'] = ''
-        path = df.iloc[[0]]['path'][0]
+        path = df.iloc[[0]][self._path_column][0]
         path=str(path)
         for i, row in df.iterrows():
-            path = df.loc[i, 'path']
+            path = df.loc[i, self._path_column]
             basename = path.split('/')[-1]
             cluster_num = clusters_dict[basename]
             df.loc[i, 'cluster'] = cluster_num

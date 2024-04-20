@@ -35,7 +35,7 @@ class DataArguments:
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     path_column: str = field(
-        default='path',
+        default='file_name',
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     speaker_column: str = field(
@@ -89,7 +89,7 @@ class ClusterSampler():
         if self._split == 'none':
             return self._df
         # https://stackoverflow.com/questions/37333299/splitting-a-pandas-dataframe-column-by-delimiter/52269469#52269469
-        self._df['split'] = self._df['path'].str.split('/').str[1]
+        self._df['split'] = self._df[self._path_column].str.split('/').str[1]
         condition = self._df['split'] == self._split
         df_train = pd.DataFrame(columns=self._df.columns)
         df_train = df_train.append(self._df[condition], ignore_index=True)
@@ -160,22 +160,22 @@ class ClusterSampler():
         8581                Thatâs what you get for testing my patience.
         10721              Today Iâm making the Internet more inclusive.
         """
-        df[self._label_column] = df[self._label_column].str.replace('`', ' ')
-        df[self._label_column] = df[self._label_column].str.replace('[', ' ')
-        df[self._label_column] = df[self._label_column].str.replace(']', ' ')
-        df[self._label_column] = df[self._label_column].str.replace('(', ' ')
-        df[self._label_column] = df[self._label_column].str.replace(')', ' ')
-        df[self._label_column] = df[self._label_column].str.replace('-', ' ')
+        df[self._label_column] = df[self._label_column].str.replace('`', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('[', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace(']', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('(', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace(')', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('-', ' ', regex=True)
 
-        df[self._label_column] = df[self._label_column].str.replace('â', '\'')
-        df[self._label_column] = df[self._label_column].str.replace('á', 'a')
-        df[self._label_column] = df[self._label_column].str.replace('ë', 'e')
-        df[self._label_column] = df[self._label_column].str.replace('é', 'e')
-        df[self._label_column] = df[self._label_column].str.replace('ñ', 'n')
-        df[self._label_column] = df[self._label_column].str.replace('ú', 'u')
-        df[self._label_column] = df[self._label_column].str.replace('ō', 'o')
-        df[self._label_column] = df[self._label_column].str.replace('ó', 'o')
-        df[self._label_column] = df[self._label_column].str.replace('&', ' and ')
+        df[self._label_column] = df[self._label_column].str.replace('â', '\'', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('á', 'a', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('ë', 'e', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('é', 'e', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('ñ', 'n', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('ú', 'u', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('ō', 'o', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('ó', 'o', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('&', ' and ', regex=True)
 
         return df
 
@@ -185,10 +185,10 @@ class ClusterSampler():
         """
         clusters_dict = self._convert_clusters_dicts_to_single_dict(clusters_dicts)
         df['cluster'] = ''
-        path = df.iloc[[0]]['path'][0]
+        path = df.iloc[[0]][self._path_column][0]
         path=str(path)
         for i, row in df.iterrows():
-            path = df.loc[i, 'path']
+            path = df.loc[i, self._path_column]
             basename = path.split('/')[-1]
             cluster_num = clusters_dict[basename]
             df.loc[i, 'cluster'] = cluster_num
@@ -225,13 +225,15 @@ class ClusterSampler():
             self._value_counts = value_counts
 
             # group = df.groupby('cluster', group_keys=False).apply(lambda x: print(value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0]))
-            print('-------------')
+            # print('-------------')
             # print(value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'])
             group = df.groupby('cluster', group_keys=False).apply(lambda x: x.sample(n=value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0], random_state=42))
-            print(group)
-            print(group['cluster'].value_counts().get(-1, 0))
+            # print(group)
+            # print(group['cluster'].value_counts().get(-1, 0))
+            print('--- DUPLICATED ROWS ---')
             group_d = group[group.duplicated(keep=False)]
             print(group_d)
+            print('--- END DUPLICATED ROWS ---')
             group.to_csv('group.csv', index=False)
             return group
 
@@ -254,6 +256,9 @@ class ClusterSampler():
         ymin = 0.045
         ymax = 0.0738
         """
+
+        # for repeatable results, set ymin=0.0397
+        # for first time results, set ymin=0.04
         ymin = 0.0397
         ymax = 0.095
 

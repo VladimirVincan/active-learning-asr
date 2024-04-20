@@ -50,7 +50,7 @@ class DataArguments:
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     path_column: str = field(
-        default='path',
+        default='file_name',
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     speaker_column: str = field(
@@ -183,6 +183,11 @@ class TrainingCreator:
         else:
             concat_df = self._df1
         concat_df = self._remove_bad_transcriptions(concat_df)
+        # print(concat_df.columns)
+        # if 'path' in concat_df.columns and 'file_name' in concat_df.columns:
+        #     concat_df.drop(columns=['file_name'], inplace=True)
+        #     print(concat_df.columns)
+        #     concat_df.rename(columns={'path': 'file_name'}, inplace=True)
         concat_df.to_csv(os.path.join(self._folder, 'metadata.csv'), index=False)
 
     def _remove_bad_transcriptions(self, df):
@@ -217,25 +222,25 @@ class TrainingCreator:
         10721              Today Iâm making the Internet more inclusive.
         """
         # special case: Hunger is good mustard â the best sauce.
-        df[self._label_column] = df[self._label_column].str.replace('mustard â', 'mustard a')
+        df[self._label_column] = df[self._label_column].str.replace('mustard â', 'mustard a', regex=True)
 
-        df[self._label_column] = df[self._label_column].str.replace('`', ' ')
-        df[self._label_column] = df[self._label_column].str.replace('’', '\'')
-        df[self._label_column] = df[self._label_column].str.replace('[', ' ')
-        df[self._label_column] = df[self._label_column].str.replace(']', ' ')
-        df[self._label_column] = df[self._label_column].str.replace('(', ' ')
-        df[self._label_column] = df[self._label_column].str.replace(')', ' ')
-        df[self._label_column] = df[self._label_column].str.replace('-', ' ')
+        df[self._label_column] = df[self._label_column].str.replace('`', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('’', '\'', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('[', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace(']', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('(', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace(')', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('-', ' ', regex=True)
 
-        df[self._label_column] = df[self._label_column].str.replace('â', '\'')
-        df[self._label_column] = df[self._label_column].str.replace('á', 'a')
-        df[self._label_column] = df[self._label_column].str.replace('ë', 'e')
-        df[self._label_column] = df[self._label_column].str.replace('é', 'e')
-        df[self._label_column] = df[self._label_column].str.replace('ñ', 'n')
-        df[self._label_column] = df[self._label_column].str.replace('ú', 'u')
-        df[self._label_column] = df[self._label_column].str.replace('ō', 'o')
-        df[self._label_column] = df[self._label_column].str.replace('ó', 'o')
-        df[self._label_column] = df[self._label_column].str.replace('&', ' and ')
+        df[self._label_column] = df[self._label_column].str.replace('â', '\'', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('á', 'a', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('ë', 'e', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('é', 'e', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('ñ', 'n', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('ú', 'u', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('ō', 'o', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('ó', 'o', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('&', ' and ', regex=True)
 
         return df
 

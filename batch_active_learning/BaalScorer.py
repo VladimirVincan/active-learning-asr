@@ -31,7 +31,7 @@ class DataArguments:
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     path_column: str = field(
-        default='path',
+        default='file_name',
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     speaker_column: str = field(
@@ -128,7 +128,7 @@ def calculate_uncertainty_for_sample(processor_id, speech_sample, NUM_ITERATIONS
 
 def calculate_uncertainty_for_all_samples_parallel():
     print('--- STARTING UNCERTAINTY PARALLEL ---')
-    results = pd.DataFrame(columns=['path', 'uncertainty'])
+    results = pd.DataFrame(columns=[data_args.path_column, 'uncertainty'])
 
     # procesor moze da se stavi u ray.put, a model ne moze zbog serijalizacije, pa njega saljemo kao argument
     processor = Wav2Vec2Processor.from_pretrained(data_args.model_dir)
@@ -146,7 +146,7 @@ def calculate_uncertainty_for_all_samples_parallel():
 
     for i, result in enumerate(uncertainties):
         speech_sample = ds[i]
-        dict = {'path': speech_sample['path'], 'uncertainty': result}
+        dict = {data_args.path_column: speech_sample[data_args.path_column], 'uncertainty': result}
         dict = pd.DataFrame(dict, index=[0])
         print(dict)
         results = pd.concat([results, dict], axis=0, ignore_index=True)

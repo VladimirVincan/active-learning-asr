@@ -30,7 +30,7 @@ class DataArguments:
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     path_column: str = field(
-        default='path',
+        default='file_name',
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     speaker_column: str = field(
@@ -53,22 +53,58 @@ class DatasetSubtractor():
 
         self._df1 = pd.read_csv(self._csv1)
         self._df2 = pd.read_csv(self._csv2)
-        self._df2.drop(['cluster', 'file_name'], axis=1, inplace=True)
+
+        if 'cluster' in self._df2:
+            self._df2.drop(['cluster'], axis=1, inplace=True)
+        else:
+            print('Cluster column doesn\'t exist')
         self._check_if_subset(self._df1, self._df2)
 
         self._df1_train, self._df1_others = self._divide_df_train_others(self._df1)
         self._df1_train = self._remove_subset_from_original(self._df1_train, self._df2)
 
+        print('shape of dev:' + str(self._df1_others.shape))
+        print('shape of dev:' + str(self._df1_train.shape))
         self._df_final = pd.concat([self._df1_train, self._df1_others]).reset_index(drop=True)
         self._df_final.drop(['split'], axis=1, inplace=True)
-        self._df_final['file_name'] = self._df_final[self._path_column]
         self._symlink_csv(self._df_final, os.path.dirname(self._csv1), self._folder)
 
     def _check_if_subset(self, df1, df2):
-        df = df1.merge(df2, how='right', indicator = True)
+        on = self._path_column
+
+        df = df1.merge(df2, how='right', on=on, indicator = True)
         df.reset_index(drop=True, inplace=True)
         df = df[df['_merge'] == 'right_only']
-        print(df)
+        if not df.empty:
+            print('----- MERGE RIGHT PATH_COLUMN NOT EMPTY -----')
+            print(df)
+            print('----- END -----')
+
+        df = df1.merge(df2, how='outer', on=on, indicator = True)
+        df.reset_index(drop=True, inplace=True)
+        if df.shape[0] != df1.shape[0]:
+            print('----- MERGE OUTER PATH COLUMN != DF1 -----')
+            print(df.duplicated().sum())
+            df = df.drop_duplicates()
+            print('Merge both shape:' + str(df.shape))
+            print('Df1 shape       :' + str(df1.shape))
+            print('Df2 shape       :' + str(df2.shape))
+            df_left = df[df['_merge'] == 'left_only']
+            df_right = df[df['_merge'] == 'right_only']
+            print('left shape      :' + str(df_left.shape))
+            print('right shape     :' + str(df_right.shape))
+            print('----- END -----')
+
+        df = df1.merge(df2, how='inner', on=on, indicator = True)
+        df.reset_index(drop=True, inplace=True)
+        if df.shape[0] != df2.shape[0]:
+            print('----- MERGE INNER != DF2 -----')
+            print('Merge both shape:')
+            print(df.shape)
+            print('Df2 shape:')
+            print(df2.shape)
+            print('----- END -----')
+
 
     def _divide_df_train_others(self, df, split='train'):
         """
@@ -81,7 +117,7 @@ class DatasetSubtractor():
         if split == 'none':
             return df
         # https://stackoverflow.com/questions/37333299/splitting-a-pandas-dataframe-column-by-delimiter/52269469#52269469
-        df['split'] = df['path'].str.split('/').str[1]
+        df['split'] = df[self._path_column].str.split('/').str[1]
         condition = df['split'] == split
         df_train = pd.DataFrame(columns=df.columns)
         df_train = df_train.append(df[condition], ignore_index=True)
@@ -93,12 +129,13 @@ class DatasetSubtractor():
         return df_train, df_others
 
     def _remove_subset_from_original(self, df_original, df_subset):
+        df_subset, _ = self._divide_df_train_others(df_subset)
+        df_subset = df_subset.drop_duplicates(subset=self._path_column)
+
         df = df_original.merge(df_subset, how='left', indicator = True)
         df.reset_index(drop=True, inplace=True)
-        print(df)
+        df = df.drop_duplicates(subset=self._path_column)
         df = df[df['_merge'] == 'left_only']
-        # print(df_original)
-        # print(df)
         df.drop(['_merge'], axis=1, inplace=True)
         return df
 
