@@ -31,7 +31,7 @@ class DataArguments:
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     path_column: str = field(
-        default='file_name ',
+        default='file_name',
         metadata={'help': 'Name of column name that has text labels of corresponding audio files.'}
     )
     speaker_column: str = field(
