@@ -1,0 +1,9 @@
+{
+    "embeddings1_dump_name": "embeddings/ivector_speaker1.pkl",
+    "embeddings2_dump_name": "embeddings/ivector_speaker2.pkl",
+    "embeddings_dump_name": "embeddings/i_vector.pkl",
+    "clusters_dump_name": "clusters/i_vector.pkl",
+    "num_clusters": 2,
+    "projection_dims": 3,
+    "pickle_save": true
+}

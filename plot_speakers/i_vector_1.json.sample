@@ -1,0 +1,5 @@
+{
+    "npz_file": "/home/bici/ivector-xvector/ivector_speaker1.npz",
+    "pickle_save": true,
+    "embeddings_dump_name": "embeddings/ivector_speaker1.pkl"
+}

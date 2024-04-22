@@ -1,0 +1,5 @@
+{
+    "audio_folder": "speaker_data/speaker1",
+    "pickle_save": true,
+    "embeddings_dump_name": "embeddings/speaker1.pkl"
+}

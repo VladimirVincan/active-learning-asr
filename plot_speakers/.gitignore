@@ -1,0 +1,5 @@
+clusters/*
+embeddings/*
+speaker_data/*
+pretrained_models/*
+*.png
