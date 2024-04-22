@@ -165,14 +165,24 @@ def calculate_uncertainty_for_all_samples_parallel():
 
     ray.shutdown()
 
+
+def calculate_uncertainty_for_sample_sequential(model, speech_sample, NUM_ITERATIONS=20):
+    base_transcription = transcribe_using_base_model(model, processor, speech_sample)
+    wer_list = []
+    for i in range(NUM_ITERATIONS):
+        transcription = transcribe_using_dropout(model, processor, speech_sample)
+        wer_list.append(wer(base_transcription, transcription))
+    return sum(wer_list)/len(wer_list)
+
 def calculate_uncertainty_for_all_samples_sequential():
     """
     Comment @ray.remote in calculate_uncertainty_for_sample in order to enable this fn to work.
     """
+    model = Wav2Vec2ForCTC.from_pretrained(data_args.model_dir)
     print('--- STARTING UNCERTAINTY SEQUENTIAL ---')
     results = pd.DataFrame(columns=[data_args.path_column, 'uncertainty'])
     for i, speech_sample in enumerate(ds):
-        result = calculate_uncertainty_for_sample(speech_sample)
+        result = calculate_uncertainty_for_sample_sequential(model, speech_sample)
         dict = {data_args.path_column: speech_sample['path'], 'uncertainty': result}
         results = pd.concat([results, dict], axis=0, ignore_index=True)
         print(dict)
