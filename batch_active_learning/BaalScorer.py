@@ -1,6 +1,7 @@
 import csv
 import os
 import sys
+import time
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -164,6 +165,20 @@ def calculate_uncertainty_for_all_samples_parallel():
 
     ray.shutdown()
 
+def calculate_uncertainty_for_all_samples_sequential():
+    """
+    Comment @ray.remote in calculate_uncertainty_for_sample in order to enable this fn to work.
+    """
+    print('--- STARTING UNCERTAINTY SEQUENTIAL ---')
+    results = pd.DataFrame(columns=[data_args.path_column, 'uncertainty'])
+    for i, speech_sample in enumerate(ds):
+        result = calculate_uncertainty_for_sample(speech_sample)
+        dict = {data_args.path_column: speech_sample['path'], 'uncertainty': result}
+        results = pd.concat([results, dict], axis=0, ignore_index=True)
+        print(dict)
+
+    results.to_csv(data_args.csv, index=False)
+
 # ============================= END INVERSE ============================
 
 
@@ -196,13 +211,20 @@ def calculate_uncertainty_for_all_samples_sequential_SMCA():
 def main():
     # num_cpus = psutil.cpu_count(logical=True)
     print('num cpus: ' + str(data_args.num_cpus))
-    ray.init(num_cpus=data_args.num_cpus)
     if data_args.algorithm == 'inverse':
         print('starting inverse parallel')
+        start_time = time.time()
+        ray.init(num_cpus=data_args.num_cpus)
         calculate_uncertainty_for_all_samples_parallel()
+        print("duration =", time.time() - start_time)
     elif data_args.algorithm == 'smca':
         print('starting smca sequential')
         calculate_uncertainty_for_all_samples_sequential_SMCA()
+    elif data_args.alogithm == 'inverse_sequential':
+        print('starting inverse sequential')
+        start_time = time.time()
+        calculate_uncertainty_for_all_samples_sequential()
+        print("duration =", time.time() - start_time)
     else:
         raise ValueError('Algorithm not defined!')
 
