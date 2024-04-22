@@ -184,6 +184,7 @@ def calculate_uncertainty_for_all_samples_sequential():
     for i, speech_sample in enumerate(ds):
         result = calculate_uncertainty_for_sample_sequential(model, speech_sample)
         dict = {data_args.path_column: speech_sample['path'], 'uncertainty': result}
+        dict = pd.DataFrame(dict, index=[0])
         results = pd.concat([results, dict], axis=0, ignore_index=True)
         print(dict)
 
@@ -230,7 +231,7 @@ def main():
     elif data_args.algorithm == 'smca':
         print('starting smca sequential')
         calculate_uncertainty_for_all_samples_sequential_SMCA()
-    elif data_args.alogithm == 'inverse_sequential':
+    elif data_args.algorithm == 'inverse_sequential':
         print('starting inverse sequential')
         start_time = time.time()
         calculate_uncertainty_for_all_samples_sequential()
