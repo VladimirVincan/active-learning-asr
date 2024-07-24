@@ -2,23 +2,23 @@ echo "----- Starting x vectors -----" > xvector_with_noise.txt
 
 for i in $(seq 1 30);
 do
-    # echo "xvector iteration ${i}"
-    # START=$(date +%s.%N)
-    # python3 x_vectors.py \
-    #         --audio_folder "../data/librispeech/clips" \
-    #         --embeddings_dump_name "../embeddings/librispeech_snr${i}.pkl" \
-    #         --pickle_save="True" \
-    #         --snr=$i
-    # END=$(date +%s.%N)
-    # DIFF_LS=$(echo "$END - $START" | bc)
-    # START=$(date +%s.%N)
-    # python3 x_vectors.py \
-    #         --audio_folder "../data/common_voice/clips" \
-    #         --embeddings_dump_name "../embeddings/common_voice_snr${i}.pkl" \
-    #         --pickle_save="True" \
-    #         --snr=$i
-    # END=$(date +%s.%N)
-    # DIFF_CV=$(echo "$END - $START" | bc)
+    echo "xvector iteration ${i}"
+    START=$(date +%s.%N)
+    python3 x_vectors.py \
+            --audio_folder "../data/librispeech/clips" \
+            --embeddings_dump_name "../embeddings/librispeech_snr${i}.pkl" \
+            --pickle_save="True" \
+            --snr=$i
+    END=$(date +%s.%N)
+    DIFF_LS=$(echo "$END - $START" | bc)
+    START=$(date +%s.%N)
+    python3 x_vectors.py \
+            --audio_folder "../data/common_voice/clips" \
+            --embeddings_dump_name "../embeddings/common_voice_snr${i}.pkl" \
+            --pickle_save="True" \
+            --snr=$i
+    END=$(date +%s.%N)
+    DIFF_CV=$(echo "$END - $START" | bc)
     python3 clusterize_and_merge_vectors.py \
             --embeddings1_dump_name "../embeddings/common_voice_snr${i}.pkl" \
             --embeddings2_dump_name "../embeddings/librispeech_snr${i}.pkl" \
