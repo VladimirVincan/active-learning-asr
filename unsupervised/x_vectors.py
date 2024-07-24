@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 import torch
 import torchaudio
+import torchaudio.functional as F
 from speechbrain.pretrained import EncoderClassifier
 from transformers import HfArgumentParser
 
@@ -36,16 +37,26 @@ class DataArguments:
         default='embeddings/cv16.pkl',
         metadata={'help': 'Name of pkl dump file of embeddings. Used if pickle_save is True.'}
     )
+    snr: int = field(
+        default=None
+    )
 
 
 class Model:
     def __init__(self, model_args):
         self.__classifier = EncoderClassifier.from_hparams(source=model_args.source, savedir=model_args.savedir)
 
-    def get_embedding(self, audio_file):
+    def get_embedding(self, audio_file, snr=1000, noise_file='/home/bici/Downloads/whitenoise3.wav'):
         signal, fs = torchaudio.load(audio_file)
         if fs != 16000:
             signal = torchaudio.functional.resample(signal,orig_freq=fs, new_freq=16000)
+        if snr is not None:
+            noise, fs = torchaudio.load(noise_file)
+            if fs != 16000:
+                noise = torchaudio.functional.resample(noise, orig_freq=fs, new_freq=16000)
+            noise = noise[:, :signal.shape[1]]
+            snr_dbs = torch.tensor([snr])
+            signal = F.add_noise(signal, noise, snr_dbs)
         embedding = self.__classifier.encode_batch(signal)
         return embedding
 
@@ -71,11 +82,11 @@ def main():
             print(basename)
             embedding_dict = {}
             embedding_dict['filename'] = os.path.basename(filename)
-            embedding_dict['embedding'] = model.get_embedding(filename)
+            embedding_dict['embedding'] = model.get_embedding(filename, data_args.snr)
             embeddings.append(embedding_dict)
 
     elif data_args.audio_file is not None:
-        embeddings = model.get_embedding(data_args.audio_file)
+        embeddings = model.get_embedding(data_args.audio_file, data_args.snr)
 
     else:
         raise Exception('Data path not defined!')

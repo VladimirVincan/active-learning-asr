@@ -121,6 +121,12 @@ class DatasetDownloader:
         df[self._path_column] = df[self._path_column].apply(lambda x: x.split('.')[0] + self._extension)
         return df
 
+    def _preprocess_voxpopuli(self, row):
+        row['audio']['path'] = os.path.basename(row['audio']['path'])
+        row['audio']['path'] = row['audio']['path'].replace(':', '_')
+        row['path'] = os.path.basename(row['audio']['path'])
+        return row
+
     def download(self):
         self._remove_folders(self._folder)
         self._remove_folders(self._cache)
@@ -136,6 +142,8 @@ class DatasetDownloader:
             print(i)
             if self._dataset.find('common_voice') >= 0:
                 row = self._preprocess_common_voice(row)
+            elif self._dataset.find('voxpopuli') >= 0:
+                row = self._preprocess_voxpopuli(row)
             path = os.path.join(self._cache, 'clips', row['audio']['path'])
             path = path.split('.')[0] + '.wav'
             soundfile.write(path, row['audio']['array'], row['audio']['sampling_rate'])
@@ -152,7 +160,7 @@ class DatasetDownloader:
         elif self._dataset.find('common_voice') >= 0:
             df = self._process_common_voice(df)
         # file_name column necessary for load_dataset to work properly
-        df['file_name'] = df[self._path_column]
+        df['file_name'] = df['path']
         df.to_csv(os.path.join(self._cache, self._csv), index=False, header=True)
 
         self._move_file(os.path.join(self._cache, self._csv), self._folder)

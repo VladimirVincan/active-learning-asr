@@ -37,7 +37,7 @@ def main():
     parser = HfArgumentParser((DataArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
-        # let's parse it to get our arguments.
+        # let's parse /it to get our arguments.
         data_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
         data_args = parser.parse_args_into_dataclasses()

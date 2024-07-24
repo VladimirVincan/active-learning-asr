@@ -99,6 +99,7 @@ class UncertaintySelector():
         self._df = pd.read_csv(self._csv)
         if self._algorithm != 'random':
             self._df_uncertainties = pd.read_csv(self._uncertainties)
+            self._df.drop(['uncertainty'], axis=1, inplace=True)
         self._df_value_counts = pd.read_csv(self._value_counts)
         with open(self._clusters_dump_name, 'rb') as f:
             self._clusters_dicts = pickle.load(f)

@@ -19,3 +19,8 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NVIDIA_PATH}/cufft/lib/
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NVIDIA_PATH}/cuda_cupti/lib/
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NVIDIA_PATH}/cusparse/lib/
 ```
+
+conda setup:
+    conda create -n alasr2 python=3.10 numpy pandas
+    python3 -m pip install torch ray jiwer baal transformers psutil
+    python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu

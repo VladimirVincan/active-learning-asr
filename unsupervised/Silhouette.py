@@ -37,7 +37,7 @@ class DataArguments:
 class Silhouette():
     def __init__(self, data_args):
         with open(data_args.embeddings_dump_name, 'rb') as f:
-            print('Opening embeddings')
+            # print('Opening embeddings')
 
             embeddings_dicts = pickle.load(f)
             self._embeddings_tensor = torch.zeros(1, 1, 512)
@@ -49,7 +49,7 @@ class Silhouette():
             self._embeddings_array = self._embeddings_tensor.squeeze().numpy()
 
         with open(data_args.clusters_dump_name, 'rb') as f:
-            print('Opening clusters')
+            # print('Opening clusters')
             clusters_dicts = pickle.load(f)
             self._cluster_array = [d['cluster'] for d in clusters_dicts]
 
@@ -125,6 +125,7 @@ def main():
 
     silhouette = Silhouette(data_args)
     score = silhouette.get_silhouette_score()
+    # score = 0.123456789
     print(score)
     with open("scores.txt", "a") as file:
         file.write(str(score) + "\n")

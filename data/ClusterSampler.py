@@ -92,11 +92,13 @@ class ClusterSampler():
         self._df['split'] = self._df[self._path_column].str.split('/').str[1]
         condition = self._df['split'] == self._split
         df_train = pd.DataFrame(columns=self._df.columns)
-        df_train = df_train.append(self._df[condition], ignore_index=True)
+        df_train = pd.concat([df_train, self._df[condition]], ignore_index=True)
+        # df_train = df_train.append(self._df[condition], ignore_index=True)
 
         condition = condition.apply(lambda x: not x)
         df_others = pd.DataFrame(columns=self._df.columns)
-        df_others = df_others.append(self._df[condition], ignore_index=True)
+        df_others = pd.concat([df_others, self._df[condition]], ignore_index=True)
+        # df_others = df_others.append(self._df[condition], ignore_index=True)
 
         return df_train, df_others
 
@@ -161,10 +163,10 @@ class ClusterSampler():
         10721              Today Iâm making the Internet more inclusive.
         """
         df[self._label_column] = df[self._label_column].str.replace('`', ' ', regex=True)
-        df[self._label_column] = df[self._label_column].str.replace('[', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('\[', ' ', regex=True)
         df[self._label_column] = df[self._label_column].str.replace(']', ' ', regex=True)
-        df[self._label_column] = df[self._label_column].str.replace('(', ' ', regex=True)
-        df[self._label_column] = df[self._label_column].str.replace(')', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('\(', ' ', regex=True)
+        df[self._label_column] = df[self._label_column].str.replace('\)', ' ', regex=True)
         df[self._label_column] = df[self._label_column].str.replace('-', ' ', regex=True)
 
         df[self._label_column] = df[self._label_column].str.replace('â', '\'', regex=True)
@@ -218,16 +220,24 @@ class ClusterSampler():
             df_random_size = df.sample(frac=frac, random_state=42).shape[0]
             # print('random sampling size: ' + str(df_random_size))
             value_counts = df['cluster'].value_counts().reset_index()
-            total_rows = value_counts['cluster'].sum()
-            value_counts['sample_percentage'] = value_counts['cluster'] / total_rows
+            print(value_counts)
+            total_rows = value_counts['count'].sum()
+            value_counts['sample_percentage'] = value_counts['count'] / total_rows
             value_counts = self._inverse_sampling_function(value_counts, total_rows)
             print(value_counts)
             self._value_counts = value_counts
 
-            # group = df.groupby('cluster', group_keys=False).apply(lambda x: print(value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0]))
-            # print('-------------')
-            # print(value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'])
-            group = df.groupby('cluster', group_keys=False).apply(lambda x: x.sample(n=value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0], random_state=42))
+            # print('------------- start')
+            # group = df.groupby('cluster', group_keys=False)
+            # print(group)
+            # for key, item in group:
+            #     print(group.get_group(key), "\n\n")
+            # print(df.head())
+            # print(value_counts.loc[value_counts['index']==x.iloc[0]['cluster'], 'num_samples'].values[0])
+            # print('------------- end\n')
+            # group = df.groupby('cluster', group_keys=False)
+            # print(group)
+            group = df.groupby('cluster', group_keys=False).apply(lambda x: x.sample(n=value_counts.loc[value_counts['cluster']==x.iloc[0]['cluster'], 'num_samples'].values[0], random_state=42))
             # print(group)
             # print(group['cluster'].value_counts().get(-1, 0))
             print('--- DUPLICATED ROWS ---')
@@ -263,7 +273,7 @@ class ClusterSampler():
         ymax = 0.095
 
         value_counts['affine_linear'] = (ymin-ymax)*value_counts['sample_percentage'] + ymax
-        value_counts['num_samples'] = ( value_counts['affine_linear'] * value_counts['cluster'] ).astype(int)
+        value_counts['num_samples'] = ( value_counts['affine_linear'] * value_counts['count'] ).astype(int)*4
         selected_number_of_rows = value_counts['num_samples'].sum()
         print('affine linear num rows: ' + str(selected_number_of_rows))
         return value_counts

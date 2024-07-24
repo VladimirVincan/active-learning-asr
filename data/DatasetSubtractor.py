@@ -54,6 +54,9 @@ class DatasetSubtractor():
         self._df1 = pd.read_csv(self._csv1)
         self._df2 = pd.read_csv(self._csv2)
 
+        print(self._df1.dtypes)
+        print(self._df2.dtypes)
+
         if 'cluster' in self._df2:
             self._df2.drop(['cluster'], axis=1, inplace=True)
         else:

@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import torch
@@ -29,6 +30,13 @@ class DataArguments:
     projection_dims: int = field(
         default=2,
         metadata={'help': '2 for 2d projection or 3 for 3d projection'}
+    )
+    plt_save: bool = field(
+        default=False,
+        metadata={'help': 'plt.save (True) or plt.show (False)'}
+    )
+    plt_save_name: str = field(
+        default='pca.png'
     )
 
 
@@ -129,11 +137,19 @@ def main():
         plt.ylabel('Second Principal Component')
 
         # annotate:
-        names = get_names(clusters_dicts)
-        for i, txt in enumerate(names):
-            plt.annotate(txt, (x_pca[i, 0], x_pca[i, 1]))
+        # names = get_names(clusters_dicts)
+        # for i, txt in enumerate(names):
+        #     plt.annotate(txt, (x_pca[i, 0], x_pca[i, 1]))
 
-    plt.show()
+    if data_args.plt_save:
+        plt.savefig(data_args.plt_save_name)
+        np.savetxt(data_args.plt_save_name+'.csv', x_pca, delimiter=',')
+        df = pd.read_csv(data_args.plt_save_name+'.csv', names=['x', 'y'])
+        df_clusters = pd.DataFrame({'cluster': cluster_list})
+        df = pd.concat([df, df_clusters], axis=1)
+        df.to_csv(data_args.plt_save_name+'.csv')
+    else:
+        plt.show()
 
 
 if __name__ == '__main__':
